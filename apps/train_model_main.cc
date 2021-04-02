@@ -1,8 +1,8 @@
 #include <core/dataset.h>
 #include <core/model.h>
 
-#include <fstream>
 #include <iostream>
+#include <fstream>
 
 using naivebayes::Dataset;
 using naivebayes::Image;
@@ -17,16 +17,21 @@ int main() {
   std::string mock = "/Users/neilkaushikkar/Cinder/my-projects/naive-bayes-nkaush/data/mock_data.txt";
   Dataset dataset = Dataset();
 
-  // Adapted from: http://www.cplusplus.com/reference/istream/istream/istream/
-  std::filebuf fb;
-  if (fb.open(path, std::ios::in)) {
-    std::istream input(&fb);
-
-    input >> dataset;
+  std::ifstream input_file(path);
+  if (input_file.is_open()) {
+    input_file >> dataset;
+    input_file.close();
   }
 
   Model model = Model();
   model.Train(dataset);
+
+  /*std::ofstream output_file("path here");
+  if (output_file.is_open()) {
+
+  } else {
+
+  }*/
 
   return 0;
 }

@@ -6,7 +6,6 @@
 #define NAIVE_BAYES_DATASET_H
 
 #include <iostream>
-#include <utility>
 #include <vector>
 #include <string>
 #include <map>
@@ -42,6 +41,7 @@ class Dataset {
     std::vector<char> GetDistinctLabels() const;
 
     friend std::istream &operator>>(std::istream &input, Dataset& dataset);
+    
   private:
     size_t size_;
     std::map<char, std::vector<Image>> class_groups_;

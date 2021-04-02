@@ -2,8 +2,8 @@
 // Created by Neil Kaushikkar on 4/1/21.
 //
 
-#include <fstream>
 #include <iostream>
+#include <fstream>
 
 #include "core/dataset.h"
 
@@ -59,7 +59,7 @@ std::vector<char> Dataset::GetDistinctLabels() const {
   return labels;
 }
 
-std::istream& operator>>(std::istream& input, Dataset& dataset) {
+std::istream& operator>>(istream& input, Dataset& dataset) {
   // TODO check for images out of shape
   Image first_image = dataset.ParseFirstImage(input);
 

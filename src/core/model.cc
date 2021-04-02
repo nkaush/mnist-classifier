@@ -9,16 +9,13 @@
 
 namespace naivebayes {
 
+using nlohmann::json;
 using std::vector;
 using std::string;
 using std::pair;
 using std::map;
 
 void Model::Train(const Dataset& dataset) {
-  CreateClassifications(dataset);
-}
-
-void Model::CreateClassifications(const Dataset& dataset) {
   vector<char> labels = dataset.GetDistinctLabels();
 
   float laplace_smoothing = labels.size() * kLaplaceSmoothingFactor;
@@ -36,6 +33,18 @@ void Model::CreateClassifications(const Dataset& dataset) {
     Classification classification = {likelihood, feature_likelihoods};
     classifications_.insert(pair<char, Classification>(label, classification));
   }
+}
+
+float Model::GetClassLikelihood(char class_label) const { 
+  return classifications_.at(class_label).class_likelihood_; 
+}
+
+float Model::GetFeatureLikelihood(char class_label, Shading shading,
+                                  size_t row, size_t column) const {
+  auto specified_class = classifications_.at(class_label);
+  auto shading_likelihood = specified_class.shading_likelihoods_.at(shading);
+  
+  return shading_likelihood.at(row).at(column);
 }
 
 map<Shading, vector<vector<float>>> Model::CalculateFeatureLikelihoods(
@@ -98,6 +107,18 @@ map<Shading, size_t> Model::FindPixelShadingCounts(
   return pixel_shading_counts;
 }
 
-void Model::SaveToFile(string path) {}
+std::ostream& operator<<(std::ostream& output, const Model& model) {
+  json serialized_model = "";
+  
+  output << serialized_model.dump(4) << std::endl;
+  return output;
+}
+
+std::istream& operator>>(std::istream& input, Model& model) {
+  json serialized_model;
+  input >> serialized_model;
+  
+  return input;
+}
 
 } // namespace naivebayes
