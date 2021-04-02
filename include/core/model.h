@@ -14,7 +14,7 @@ namespace naivebayes {
 
 struct Classification {
   float class_likelihood_;
-  std::map<size_t, std::vector<std::vector<float>>> shading_likelihood_;
+  std::map<Shading, std::vector<std::vector<float>>> shading_likelihood_;
 };
 
 class Model {
@@ -31,6 +31,13 @@ class Model {
     static constexpr size_t kLaplaceSmoothingFactor = 1;
 
     void CreateClassifications(const Dataset& dataset);
+
+    std::map<Shading, std::vector<std::vector<float>>>
+    CalculateFeatureLikelihoods(
+        const std::vector<Image>& group, size_t label_count) const;
+
+    std::map<Shading, size_t> FindPixelShadingCounts(
+        const std::vector<Image>& group, size_t row, size_t column) const;
 };
 
 } // namespace naivebayes

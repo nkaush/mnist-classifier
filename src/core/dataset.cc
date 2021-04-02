@@ -14,24 +14,35 @@ using std::vector;
 using std::string;
 using std::map;
 
-const map<char, size_t> Dataset::kPixelShadings = {
-    {' ', 0}, {'+', 1}, {'#', 1}};
+const map<char, Shading> Dataset::kPixelShadings =
+    {{' ', Shading::kWhite}, {'+', Shading::kBlack}, {'#', Shading::kBlack}};
+
+const vector<Shading> Dataset::kDistinctShadingEncodings =
+    {Shading::kWhite, Shading::kBlack};
 
 Dataset::Dataset() : size_(0) {}
+
+size_t Image::GetHeight() const {
+  return pixels_.size();
+}
+
+size_t Image::GetWidth() const {
+  return pixels_.at(0).size();
+}
 
 // TODO add somewhere
 void Dataset::ValidateFilePath(const string& file_path) const {
   std::ifstream located_file(file_path);
 
   if (!located_file.is_open()) {
-    throw std::invalid_argument("The file path is not valid");
+    throw std::invalid_argument("The file path is not valid.");
   }
 
   located_file.close();
 }
 
-const vector<Image>& Dataset::GetImageGroup(char group_class) const {
-  return class_groups_.at(group_class);
+const vector<Image>& Dataset::GetImageGroup(char class_label) const {
+  return class_groups_.at(class_label);
 }
 
 size_t Dataset::GetSize() const {
@@ -50,10 +61,10 @@ std::vector<char> Dataset::GetDistinctLabels() const {
 
 std::istream& operator>>(std::istream& input, Dataset& dataset) {
   // TODO check for images out of shape
-
   Image first_image = dataset.ParseFirstImage(input);
-  size_t image_height = first_image.GetHeight();
-  char first_image_label = first_image.GetLabel();
+
+  size_t image_height = first_image.pixels_.size();
+  char first_image_label = first_image.label_;
 
   // Get the first image so we know dimensions to search for other images
   std::pair<char, vector<Image>> first_class(first_image_label, {first_image});
@@ -61,7 +72,7 @@ std::istream& operator>>(std::istream& input, Dataset& dataset) {
   dataset.size_++;
 
   string current_label;
-  while (getline(input, current_label)) {
+  while (getline(input, current_label)) { // continue while there is a label
     string next_line;
     vector<string> lines;
     // aggregate all the lines in the image, assuming all images are same size
@@ -78,7 +89,7 @@ std::istream& operator>>(std::istream& input, Dataset& dataset) {
 }
 
 void Dataset::AddImage(char label, const vector<string>& image_lines) {
-  vector<vector<size_t>> encoding = EncodeShadingStrings(image_lines);
+  vector<vector<Shading>> encoding = EncodeShadingStrings(image_lines);
   auto group_iterator = class_groups_.find(label);
 
   // If we have not seen an image from this class, add its label
@@ -90,7 +101,8 @@ void Dataset::AddImage(char label, const vector<string>& image_lines) {
     group_iterator = class_groups_.find(label);
   }
   // Create a new Image here and add to corresponding class group
-  group_iterator->second.emplace_back(encoding, label);
+  Image image = Image(encoding, label);
+  group_iterator->second.push_back(image);
   size_++;
 }
 
@@ -123,12 +135,12 @@ Image Dataset::ParseFirstImage(istream& in) const {
   return Image(EncodeShadingStrings(lines), label);
 }
 
-vector<vector<size_t>> Dataset::EncodeShadingStrings(
+vector<vector<Shading>> Dataset::EncodeShadingStrings(
     const vector<string>& shading) const {
-  vector<vector<size_t>> pixel_grid;
+  vector<vector<Shading>> pixel_grid;
 
   for (const string& row : shading) {
-    vector<size_t> pixel_row;
+    vector<Shading> pixel_row;
 
     for (char pixel : row) {
       pixel_row.push_back(kPixelShadings.at(pixel));
