@@ -6,6 +6,7 @@
 #include <fstream>
 
 #include "core/dataset.h"
+#include "core/image.h"
 
 namespace naivebayes {
 
@@ -13,20 +14,6 @@ using std::istream;
 using std::vector;
 using std::string;
 using std::map;
-
-const map<char, Shading> Dataset::kPixelShadings =
-    {{' ', Shading::kWhite}, {'+', Shading::kBlack}, {'#', Shading::kBlack}};
-
-const vector<Shading> Dataset::kDistinctShadingEncodings =
-    {Shading::kWhite, Shading::kBlack};
-
-size_t Image::GetHeight() const {
-  return pixels_.size();
-}
-
-size_t Image::GetWidth() const {
-  return pixels_.at(0).size();
-}
 
 Dataset::Dataset() : size_(0) {}
 
@@ -63,8 +50,8 @@ std::istream& operator>>(istream& input, Dataset& dataset) {
   // TODO check for images out of shape
   Image first_image = dataset.ParseFirstImage(input);
 
-  size_t image_height = first_image.pixels_.size();
-  char first_image_label = first_image.label_;
+  size_t image_height = first_image.GetHeight();
+  char first_image_label = first_image.GetLabel();
 
   // Get the first image so we know dimensions to search for other images
   std::pair<char, vector<Image>> first_class(first_image_label, {first_image});
@@ -144,24 +131,13 @@ vector<vector<Shading>> Dataset::EncodeShadingStrings(
     vector<Shading> pixel_row;
 
     for (char pixel : row) {
-      pixel_row.push_back(kPixelShadings.at(pixel));
+      pixel_row.push_back(Image::kPixelShadings.at(pixel));
     }
 
     pixel_grid.push_back(pixel_row);
   }
 
   return pixel_grid;
-}
-
-Shading Dataset::MapStringToShading(const std::string& to_map) {
-  for (const Shading& shading : kDistinctShadingEncodings) {
-    string encoding_string = std::to_string(static_cast<int>(shading));
-    if (to_map == encoding_string) {
-      return shading;
-    }
-  }
-  
-  throw std::invalid_argument("The shading encoding string provided is invalid.");
 }
 
 } // namespace naivebayes

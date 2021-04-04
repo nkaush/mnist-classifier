@@ -15,6 +15,10 @@ using std::string;
 using std::pair;
 using std::map;
 
+const string Model::kJsonSchemaLabelKey = "label";
+const string Model::kJsonSchemaClassKey = "class_likelihood";
+const string Model::kJsonSchemaShadingKey = "shading_likelihoods";
+
 float Model::GetClassLikelihood(char class_label) const {
   return classifications_.at(class_label).class_likelihood_;
 }
@@ -67,8 +71,8 @@ map<Shading, vector<vector<float>>> Model::CalculateFeatureLikelihoods(
 
   for (size_t row = 0; row < row_count; row++) {
     for (size_t column = 0; column < column_count; column++) {
-      map<Shading, size_t> pixel_shading_counts =
-          FindPixelShadingCounts(class_group, row, column);
+      map<Shading, size_t> pixel_shading_counts = 
+          CountPixelShadings(class_group, row, column);
 
       for (pair<const Shading, size_t> shading_count : pixel_shading_counts) {
         float smoothed_pixel_shading_count =
@@ -90,7 +94,7 @@ map<Shading, vector<vector<float>>> Model::InitializeEmptyFeatureMap(
     size_t row_count, size_t column_count) {
   map<Shading, vector<vector<float>>> feature_likelihoods;
   
-  for (Shading shading : Dataset::kDistinctShadingEncodings) {
+  for (Shading shading : Image::kDistinctShadingEncodings) {
     vector<vector<float>> empty_vector;
     empty_vector.resize(row_count, vector<float>(column_count));
 
@@ -101,17 +105,17 @@ map<Shading, vector<vector<float>>> Model::InitializeEmptyFeatureMap(
   return feature_likelihoods;
 }
 
-map<Shading, size_t> Model::FindPixelShadingCounts(
+map<Shading, size_t> Model::CountPixelShadings(
     const vector<Image>& group, size_t row, size_t column) {
   // map has key shading_class and value image_count
   map<Shading, size_t> pixel_shading_counts;
   // Initialize all image_counts to 0
-  for (Shading shading : Dataset::kDistinctShadingEncodings) {
+  for (Shading shading : Image::kDistinctShadingEncodings) {
     pixel_shading_counts.insert(pair<Shading, size_t> (shading, 0));
   }
 
   for (const Image& image : group) {
-    Shading shading_class = image.pixels_.at(row).at(column);
+    Shading shading_class = image.GetPixel(row, column);
 
     // increment the count of the specified shading
     auto pixel_count_iterator = pixel_shading_counts.find(shading_class);
@@ -128,10 +132,12 @@ std::ostream& operator<<(std::ostream& output, const Model& model) {
   for (const auto& classification : model.classifications_) {
     json classification_object;
     // convert the char to a string with that 1 char
-    classification_object["label"] = std::string(1, classification.first);
+    classification_object[Model::kJsonSchemaLabelKey] = 
+        std::string(1, classification.first);
  
     Classification class_struct = classification.second;
-    classification_object["class_likelihood"] = class_struct.class_likelihood_;
+    classification_object[Model::kJsonSchemaClassKey] = 
+        class_struct.class_likelihood_;
     
     json shading_likelihoods;
     // Go through the map in the Classification struct and serialize it
@@ -142,12 +148,12 @@ std::ostream& operator<<(std::ostream& output, const Model& model) {
       
       shading_likelihoods[shading_key] = shading_likelihood.second;
     }
-    classification_object["shading_likelihoods"] = shading_likelihoods;
+    classification_object[Model::kJsonSchemaShadingKey] = shading_likelihoods;
     
     serialized_model.push_back(classification_object);
   }
   
-  output << serialized_model.dump(4) << std::endl;
+  output << serialized_model.dump(Model::kJsonSchemaSpacing) << std::endl;
   return output;
 }
 
@@ -156,18 +162,18 @@ std::istream& operator>>(std::istream& input, Model& model) {
   input >> serialized_model;
   
   for (const json& classification : serialized_model) {
-    string class_string = classification["label"];
+    string class_string = classification[Model::kJsonSchemaLabelKey];
     char class_label = class_string.at(0);
     
-    float class_likelihood = classification["class_likelihood"];
+    float class_likelihood = classification[Model::kJsonSchemaClassKey];
 
     map<string, vector<vector<float>>> parsed_json_object = 
-        classification["shading_likelihoods"];
+        classification[Model::kJsonSchemaShadingKey];
     map<Shading, vector<vector<float>>> shading_likelihood;
     
     for (const auto& json_pairs : parsed_json_object) {
       Shading shading_encoding =
-          Dataset::MapStringToShading(json_pairs.first);
+          Image::MapStringDigitEncodingToShading(json_pairs.first);
 
       pair<Shading, vector<vector<float>>> encoded_pair(shading_encoding,
                                                         json_pairs.second);

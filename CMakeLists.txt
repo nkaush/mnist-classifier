@@ -25,9 +25,12 @@ endif()
 # FetchContent added in CMake 3.11, downloads during the configure step
 include(FetchContent)
 
-FetchContent_Declare(json
+# Fetch a version that only contains the necessary headers that automatically updates as new releases come out
+FetchContent_Declare(
+        json
         GIT_REPOSITORY https://github.com/ArthurSonzogni/nlohmann_json_cmake_fetchcontent
-        GIT_TAG v3.9.1)
+        GIT_TAG v3.9.1
+)
 
 # Adds json parsing library
 FetchContent_GetProperties(json)
@@ -58,13 +61,12 @@ if(NOT catch2_POPULATED)
     target_include_directories(catch2 INTERFACE ${catch2_SOURCE_DIR}/single_include)
 endif()
 
+# Load the gflags library from a homebrew local installation 
 set(gflags_DIR /usr/local/Cellar/gflags/2.2.2)
 find_package(gflags REQUIRED)
 FetchContent_GetProperties(gflags)
-
 include_directories(${gflags_INCLUDE_DIR})
 message(STATUS "GFLAGS include path: ${gflags_INCLUDE_DIR}")
-
 
 get_filename_component(CINDER_PATH "${CMAKE_CURRENT_SOURCE_DIR}/../../" ABSOLUTE)
 get_filename_component(APP_PATH "${CMAKE_CURRENT_SOURCE_DIR}/" ABSOLUTE)
@@ -73,6 +75,7 @@ include("${CINDER_PATH}/proj/cmake/modules/cinderMakeApp.cmake")
 
 list(APPEND CORE_SOURCE_FILES src/core/dataset.cc
                               src/core/model.cc
+                              src/core/image.cc
                               data/mock_data.txt
                               data/trainingimagesandlabels.txt)
 
@@ -85,7 +88,6 @@ list(APPEND TEST_FILES tests/test_dataset.cc
 
 add_executable(train-model apps/train_model_main.cc ${CORE_SOURCE_FILES})
 target_link_libraries(train-model json_lib gflags)
-
 target_include_directories(train-model PRIVATE include)
 
 ci_make_app(
