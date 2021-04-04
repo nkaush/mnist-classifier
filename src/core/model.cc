@@ -124,6 +124,7 @@ map<Shading, size_t> Model::FindPixelShadingCounts(
 std::ostream& operator<<(std::ostream& output, const Model& model) {
   json serialized_model;
   
+  // Go through each label/Classification struct pair so we can serialize them
   for (const auto& classification : model.classifications_) {
     json classification_object;
     // convert the char to a string with that 1 char
@@ -133,6 +134,7 @@ std::ostream& operator<<(std::ostream& output, const Model& model) {
     classification_object["class_likelihood"] = class_struct.class_likelihood_;
     
     json shading_likelihoods;
+    // Go through the map in the Classification struct and serialize it
     for (const auto& shading_likelihood : class_struct.shading_likelihoods_) {
       // cast the encoding of the Shading enum to an int, then convert to string
       int shading_encoding = static_cast<int>(shading_likelihood.first);
@@ -154,8 +156,6 @@ std::istream& operator>>(std::istream& input, Model& model) {
   input >> serialized_model;
   
   for (const json& classification : serialized_model) {
-    bool test = classification.is_array();
-    std::cout << test << std::endl;
     string class_string = classification["label"];
     char class_label = class_string.at(0);
     

@@ -153,7 +153,7 @@ vector<vector<Shading>> Dataset::EncodeShadingStrings(
   return pixel_grid;
 }
 
-Shading Dataset::MapStringToShading(std::string to_map) {
+Shading Dataset::MapStringToShading(const std::string& to_map) {
   for (const Shading& shading : kDistinctShadingEncodings) {
     string encoding_string = std::to_string(static_cast<int>(shading));
     if (to_map == encoding_string) {

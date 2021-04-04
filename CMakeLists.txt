@@ -29,6 +29,7 @@ FetchContent_Declare(json
         GIT_REPOSITORY https://github.com/ArthurSonzogni/nlohmann_json_cmake_fetchcontent
         GIT_TAG v3.9.1)
 
+# Adds json parsing library
 FetchContent_GetProperties(json)
 if(NOT json_POPULATED)
     FetchContent_Populate(json)
@@ -57,6 +58,14 @@ if(NOT catch2_POPULATED)
     target_include_directories(catch2 INTERFACE ${catch2_SOURCE_DIR}/single_include)
 endif()
 
+set(gflags_DIR /usr/local/Cellar/gflags/2.2.2)
+find_package(gflags REQUIRED)
+FetchContent_GetProperties(gflags)
+
+include_directories(${gflags_INCLUDE_DIR})
+message(STATUS "GFLAGS include path: ${gflags_INCLUDE_DIR}")
+
+
 get_filename_component(CINDER_PATH "${CMAKE_CURRENT_SOURCE_DIR}/../../" ABSOLUTE)
 get_filename_component(APP_PATH "${CMAKE_CURRENT_SOURCE_DIR}/" ABSOLUTE)
 
@@ -71,10 +80,12 @@ list(APPEND SOURCE_FILES    ${CORE_SOURCE_FILES}
                             src/visualizer/naive_bayes_app.cc
                             src/visualizer/sketchpad.cc)
 
-list(APPEND TEST_FILES tests/test_dataset.cc)
+list(APPEND TEST_FILES tests/test_dataset.cc
+                       tests/test_model.cc)
 
 add_executable(train-model apps/train_model_main.cc ${CORE_SOURCE_FILES})
-target_link_libraries(train-model json_lib)
+target_link_libraries(train-model json_lib gflags)
+
 target_include_directories(train-model PRIVATE include)
 
 ci_make_app(

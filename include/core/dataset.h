@@ -40,12 +40,13 @@ class Dataset {
 
     std::vector<char> GetDistinctLabels() const;
 
+    static Shading MapStringToShading(const std::string& to_map);
+    
     friend std::istream &operator>>(std::istream &input, Dataset& dataset);
-    
-    static Shading MapStringToShading(std::string to_map);
-    
+  
   private:
     size_t size_;
+    
     std::map<char, std::vector<Image>> class_groups_;
 
     static const std::map<char, Shading> kPixelShadings;
