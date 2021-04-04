@@ -12,9 +12,9 @@
 
 namespace naivebayes {
 
-enum class Shading {
-  kWhite,
-  kBlack
+enum class Shading{
+  kWhite = 0,
+  kBlack = 1
 };
 
 struct Image {
@@ -41,6 +41,8 @@ class Dataset {
     std::vector<char> GetDistinctLabels() const;
 
     friend std::istream &operator>>(std::istream &input, Dataset& dataset);
+    
+    static Shading MapStringToShading(std::string to_map);
     
   private:
     size_t size_;

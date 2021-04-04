@@ -15,23 +15,31 @@ int main() {
 
   std::string path = "/Users/neilkaushikkar/Cinder/my-projects/naive-bayes-nkaush/data/trainingimagesandlabels.txt";
   std::string mock = "/Users/neilkaushikkar/Cinder/my-projects/naive-bayes-nkaush/data/mock_data.txt";
+  
+  std::string model_out = "/Users/neilkaushikkar/Cinder/my-projects/naive-bayes-nkaush/data/model_test.json";
+  
   Dataset dataset = Dataset();
-
-  std::ifstream input_file(path);
-  if (input_file.is_open()) {
-    input_file >> dataset;
-    input_file.close();
-  }
-
   Model model = Model();
-  model.Train(dataset);
 
-  /*std::ofstream output_file("path here");
-  if (output_file.is_open()) {
+//  std::ifstream input_file(mock);
+//  if (input_file.is_open()) {
+//    input_file >> dataset;
+//    input_file.close();
+//  }
+//  
+//  model.Train(dataset);
 
-  } else {
+//  std::ofstream output_file(model_out);
+//  if (output_file.is_open()) {
+//    output_file << model;
+//    output_file.close();
+//  }
 
-  }*/
+  std::ifstream model_file(model_out);
+  if (model_file.is_open()) {
+    model_file >> model;
+    model_file.close();
+  }
 
   return 0;
 }

@@ -20,8 +20,6 @@ const map<char, Shading> Dataset::kPixelShadings =
 const vector<Shading> Dataset::kDistinctShadingEncodings =
     {Shading::kWhite, Shading::kBlack};
 
-Dataset::Dataset() : size_(0) {}
-
 size_t Image::GetHeight() const {
   return pixels_.size();
 }
@@ -29,6 +27,8 @@ size_t Image::GetHeight() const {
 size_t Image::GetWidth() const {
   return pixels_.at(0).size();
 }
+
+Dataset::Dataset() : size_(0) {}
 
 // TODO add somewhere
 void Dataset::ValidateFilePath(const string& file_path) const {
@@ -122,9 +122,10 @@ Image Dataset::ParseFirstImage(istream& in) const {
 
   std::streampos original_position;
 
-  // Adapted from https://stackoverflow.com/a/27331411
+  // Add lines to the image until we read the next label
   while (line.size() == image_width) {
-    original_position = in.tellg();  // stores the position of the stream
+    // Adapted from https://stackoverflow.com/a/27331411
+    original_position = in.tellg();
     lines.push_back(line);
     getline(in, line);
   }
@@ -150,6 +151,17 @@ vector<vector<Shading>> Dataset::EncodeShadingStrings(
   }
 
   return pixel_grid;
+}
+
+Shading Dataset::MapStringToShading(std::string to_map) {
+  for (const Shading& shading : kDistinctShadingEncodings) {
+    string encoding_string = std::to_string(static_cast<int>(shading));
+    if (to_map == encoding_string) {
+      return shading;
+    }
+  }
+  
+  throw std::invalid_argument("The shading encoding string provided is invalid.");
 }
 
 } // namespace naivebayes

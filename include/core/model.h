@@ -42,8 +42,11 @@ class Model {
     CalculateFeatureLikelihoods(
         const std::vector<Image>& class_group, size_t label_count) const;
 
-    std::map<Shading, size_t> FindPixelShadingCounts(
-        const std::vector<Image>& group, size_t row, size_t column) const;
+    static std::map<Shading, std::vector<std::vector<float>>>
+    InitializeEmptyFeatureMap(size_t row_count, size_t column_count);
+
+    static std::map<Shading, size_t> FindPixelShadingCounts(
+        const std::vector<Image>& group, size_t row, size_t column);
 };
 
 } // namespace naivebayes

@@ -25,6 +25,19 @@ endif()
 # FetchContent added in CMake 3.11, downloads during the configure step
 include(FetchContent)
 
+FetchContent_Declare(json
+        GIT_REPOSITORY https://github.com/ArthurSonzogni/nlohmann_json_cmake_fetchcontent
+        GIT_TAG v3.9.1)
+
+FetchContent_GetProperties(json)
+if(NOT json_POPULATED)
+    FetchContent_Populate(json)
+    add_library(json_lib INTERFACE)
+    add_subdirectory(${json_SOURCE_DIR} ${json_BINARY_DIR})
+endif()
+
+target_link_libraries(json_lib INTERFACE nlohmann_json::nlohmann_json)
+
 # FetchContent_MakeAvailable was not added until CMake 3.14
 if(${CMAKE_VERSION} VERSION_LESS 3.14)
     include(cmake/add_FetchContent_MakeAvailable.cmake)
@@ -61,6 +74,7 @@ list(APPEND SOURCE_FILES    ${CORE_SOURCE_FILES}
 list(APPEND TEST_FILES tests/test_dataset.cc)
 
 add_executable(train-model apps/train_model_main.cc ${CORE_SOURCE_FILES})
+target_link_libraries(train-model json_lib)
 target_include_directories(train-model PRIVATE include)
 
 ci_make_app(
