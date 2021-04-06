@@ -85,7 +85,8 @@ list(APPEND SOURCE_FILES    ${CORE_SOURCE_FILES}
                             src/visualizer/sketchpad.cc)
 
 list(APPEND TEST_FILES tests/test_dataset.cc
-                       tests/test_model.cc)
+                       tests/test_model.cc
+                       tests/test_image.cc)
 
 add_executable(train-model apps/train_model_main.cc ${CORE_SOURCE_FILES})
 target_link_libraries(train-model json_lib gflags)

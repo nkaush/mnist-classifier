@@ -19,7 +19,8 @@ using std::string;
 
 TEST_CASE("Test Reading Mock Dataset") {
   // Need long verbose filepath since Cmake/Cinder can't locate local file path
-  std::string file_path = "/Users/neilkaushikkar/Cinder/my-projects/naive-bayes-nkaush/data/testing_dataset.txt";
+  std::string file_path = "/Users/neilkaushikkar/Cinder/my-projects/"
+      "naive-bayes-nkaush/data/testing_dataset.txt";
   fstream input(file_path);
   Dataset dataset;
 
@@ -103,6 +104,126 @@ TEST_CASE("Test Single Image Entry") {
 
   SECTION("Test dataset inferring correct labels") {
     REQUIRE(dataset.GetDistinctLabels() == vector<char>({'0'}));
+  }
+}
+
+TEST_CASE("Test Loading Images of Different Size - 5x5") {
+  string image_text =
+      "0\n"
+      "###  \n"
+      "# #  \n"
+      "###  \n"
+      "     \n"
+      "     \n"
+      "1\n"
+      " ##  \n"
+      "  #  \n"
+      "  #  \n"
+      "  #  \n"
+      " ### \n";
+  stringstream input(image_text);
+  Dataset dataset = Dataset();
+
+  input >> dataset;
+
+  SECTION("Test dataset correctly encodes images with label '0'") {
+    vector<vector<Shading>> pixel_grid =
+        dataset.GetImageGroup('0').at(0).GetPixelGrid();
+
+    Shading b = Shading::kBlack;
+    Shading w = Shading::kWhite;
+
+    vector<vector<Shading>> correct_grid = {{b, b, b, w, w},
+                                            {b, w, b, w, w},
+                                            {b, b, b, w, w},
+                                            {w, w, w, w, w},
+                                            {w, w, w, w, w}};
+    REQUIRE(pixel_grid == correct_grid);
+  }
+
+  SECTION("Test dataset correctly encodes images with label '1'") {
+    vector<vector<Shading>> pixel_grid =
+        dataset.GetImageGroup('1').at(0).GetPixelGrid();
+
+    Shading b = Shading::kBlack;
+    Shading w = Shading::kWhite;
+
+    vector<vector<Shading>> correct_grid = {{w, b, b, w, w},
+                                            {w, w, b, w, w},
+                                            {w, w, b, w, w},
+                                            {w, w, b, w, w},
+                                            {w, b, b, b, w}};
+    REQUIRE(pixel_grid == correct_grid);
+  }
+
+  SECTION("Test dataset accurately records size") {
+    REQUIRE(dataset.GetSize() == 2);
+  }
+
+  SECTION("Test dataset inferring correct labels") {
+    REQUIRE(dataset.GetDistinctLabels() == vector<char>({'0', '1'}));
+  }
+}
+
+TEST_CASE("Test Loading Images of Different Size - 6x6") {
+  string image_text =
+      "0\n"
+      "      \n"
+      " #### \n"
+      " #  # \n"
+      " #  # \n"
+      " #### \n"
+      "      \n"
+      "1\n"
+      "      \n"
+      "  ##  \n"
+      "   #  \n"
+      "   #  \n"
+      "  ### \n"
+      "      \n";
+  stringstream input(image_text);
+  Dataset dataset = Dataset();
+
+  input >> dataset;
+
+  SECTION("Test dataset correctly encodes images with label '0'") {
+    vector<vector<Shading>> pixel_grid =
+        dataset.GetImageGroup('0').at(0).GetPixelGrid();
+
+    Shading b = Shading::kBlack;
+    Shading w = Shading::kWhite;
+
+    vector<vector<Shading>> correct_grid = {{w, w, w, w, w, w},
+                                            {w, b, b, b, b, w},
+                                            {w, b, w, w, b, w},
+                                            {w, b, w, w, b, w},
+                                            {w, b, b, b, b, w},
+                                            {w, w, w, w, w, w}};
+    REQUIRE(pixel_grid == correct_grid);
+  }
+
+  SECTION("Test dataset correctly encodes images with label '1'") {
+    vector<vector<Shading>> pixel_grid =
+        dataset.GetImageGroup('1').at(0).GetPixelGrid();
+
+    Shading b = Shading::kBlack;
+    Shading w = Shading::kWhite;
+
+    vector<vector<Shading>> correct_grid = {{w, w, w, w, w, w},
+                                            {w, w, b, b, w, w},
+                                            {w, w, w, b, w, w},
+                                            {w, w, w, b, w, w},
+                                            {w, w, b, b, b, w},
+                                            {w, w, w, w, w, w}};
+    REQUIRE(pixel_grid == correct_grid);
+  }
+
+  SECTION("Test dataset accurately records size") {
+    REQUIRE(dataset.GetSize() == 2);
+  }
+
+  SECTION("Test dataset inferring correct labels") {
+    REQUIRE(dataset.GetDistinctLabels() == vector<char>({'0', '1'}));
   }
 }
 

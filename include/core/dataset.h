@@ -47,6 +47,8 @@ class Dataset {
      * @param input - an istream to read images from
      * @param dataset - the Dataset object to populate with images
      * @return the istream after the images have been extracted from it
+     * @throws std::invalid_argument if any image is missing a label or if any
+     * image is not the same uniform size as all other images
      */
     friend std::istream &operator>>(std::istream &input, Dataset& dataset);
   
@@ -57,8 +59,6 @@ class Dataset {
     // Groups Images by common labels
     std::map<char, std::vector<Image>> class_groups_;
     
-    void ValidateFilePath(const std::string& file_path) const;
-
     /**
      * Adds an Image to the dataset by encoding strings to Shading enum lines.
      * @param label - a char indicating the label of the Image to add
@@ -72,6 +72,7 @@ class Dataset {
      * @param input - an istream to read the first image from
      * @return an Image struct representing an encoded form of the 1st image in 
      * the stream and is used to infer the dimension of all other images
+     * @throws std::invalid_argument if the first image is missing a label
      */
     Image ParseFirstImage(std::istream& input) const;
 

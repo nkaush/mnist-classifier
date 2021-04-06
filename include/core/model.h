@@ -26,11 +26,14 @@ struct Classification {
  */
 class Model {
   public:
+    // The smoothing factor to use when calculating feature likelihoods
+    static constexpr size_t kDefaultLaplaceSmoothingFactor = 1;
+    
     /**
      * Default constructor. The model must be initialized by either training
      * it with a Dataset or by loading a saved model from a stream.
      */
-    Model() = default;
+    Model(float laplace_smoothing=kDefaultLaplaceSmoothingFactor);
 
     /**
      * Trains the model with the provided Dataset. Initializes the model.
@@ -76,9 +79,8 @@ class Model {
   private:
     // Stores the likelihood of each class and all features for each class
     std::map<char, Classification> classifications_;
-
-    // The smoothing factor to use when calculating feature likelihoods
-    static constexpr size_t kLaplaceSmoothingFactor = 1;
+    
+    float laplace_smoothing_;
     
     // The spacing schema to use when generating the serialized model
     static constexpr size_t kJsonSchemaSpacing = 2;

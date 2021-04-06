@@ -38,6 +38,8 @@ class ExecutableLogic {
                 const std::string& save_flag);
   private:
     Model model_;
+
+    static void ValidateFilePath(const std::string& file_path) ;
     
     /**
      * Save the model to the specified file path. Creates a file, if the

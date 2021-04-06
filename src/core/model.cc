@@ -19,6 +19,8 @@ const string Model::kJsonSchemaLabelKey = "label";
 const string Model::kJsonSchemaClassKey = "class_likelihood";
 const string Model::kJsonSchemaShadingKey = "shading_likelihoods";
 
+Model::Model(float laplace_smoothing) : laplace_smoothing_(laplace_smoothing) {}
+
 float Model::GetClassLikelihood(char class_label) const {
   return classifications_.at(class_label).class_likelihood_;
 }
@@ -36,14 +38,14 @@ void Model::Train(const Dataset& dataset) {
   vector<char> labels = dataset.GetDistinctLabels();
 
   float laplace_smoothing = 
-      static_cast<float>(labels.size())* kLaplaceSmoothingFactor;
+      static_cast<float>(labels.size())* laplace_smoothing_;
   float smoothed_dataset_size = laplace_smoothing + dataset.GetSize();
 
   for (char label : labels) {
     const vector<Image>& group = dataset.GetImageGroup(label);
 
     float smoothed_class_count = 
-        static_cast<float>(group.size()) + kLaplaceSmoothingFactor;
+        static_cast<float>(group.size()) + laplace_smoothing_;
     // TODO WEEK 2 - add log10 here
     float class_likelihood = smoothed_class_count / smoothed_dataset_size;
 
@@ -64,8 +66,8 @@ map<Shading, vector<vector<float>>> Model::CalculateFeatureLikelihoods(
   map<Shading, vector<vector<float>>> feature_likelihoods = 
       InitializeEmptyFeatureMap(row_count, column_count);
 
-  float group_size_smooth_factor = 
-      kLaplaceSmoothingFactor * static_cast<float>(label_count);
+  float group_size_smooth_factor =
+      laplace_smoothing_ * static_cast<float>(label_count);
   float smoothed_group_count = 
       group_size_smooth_factor + static_cast<float>(class_group.size());
 
@@ -76,7 +78,7 @@ map<Shading, vector<vector<float>>> Model::CalculateFeatureLikelihoods(
 
       for (pair<const Shading, size_t> shading_count : pixel_shading_counts) {
         float smoothed_pixel_shading_count =
-            kLaplaceSmoothingFactor + static_cast<float>(shading_count.second);
+            laplace_smoothing_ + static_cast<float>(shading_count.second);
 
         // TODO WEEK 2 - add log10 here
         float likelihood = smoothed_pixel_shading_count / smoothed_group_count;
@@ -126,7 +128,7 @@ map<Shading, size_t> Model::CountPixelShadings(
 }
 
 std::ostream& operator<<(std::ostream& output, const Model& model) {
-  json serialized_model;
+  json serialized_model = json::array();
   
   // Go through each label/Classification struct pair so we can serialize them
   for (const auto& classification : model.classifications_) {

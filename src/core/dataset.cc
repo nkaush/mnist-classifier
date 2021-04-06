@@ -17,17 +17,6 @@ using std::map;
 
 Dataset::Dataset() : size_(0) {}
 
-// TODO add somewhere
-void Dataset::ValidateFilePath(const string& file_path) const {
-  std::ifstream located_file(file_path);
-
-  if (!located_file.is_open()) {
-    throw std::invalid_argument("The file path is not valid.");
-  }
-
-  located_file.close();
-}
-
 const vector<Image>& Dataset::GetImageGroup(char class_label) const {
   return class_groups_.at(class_label);
 }

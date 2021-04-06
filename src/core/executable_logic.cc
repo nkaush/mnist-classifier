@@ -67,4 +67,14 @@ void ExecutableLogic::TrainModel(const string& dataset_path) {
   }
 }
 
+void ExecutableLogic::ValidateFilePath(const string& file_path) {
+  std::ifstream located_file(file_path);
+
+  if (!located_file.is_open()) {
+    throw std::invalid_argument("The file path is not valid.");
+  }
+
+  located_file.close();
+}
+
 } // namespace naivebayes
