@@ -19,7 +19,7 @@ using std::string;
 
 TEST_CASE("Test Reading Mock Dataset") {
   // Need long verbose filepath since Cmake/Cinder can't locate local file path
-  std::string file_path = "/Users/neilkaushikkar/Cinder/my-projects/naive-bayes-nkaush/data/mock_data.txt";
+  std::string file_path = "/Users/neilkaushikkar/Cinder/my-projects/naive-bayes-nkaush/data/testing_dataset.txt";
   fstream input(file_path);
   Dataset dataset;
 

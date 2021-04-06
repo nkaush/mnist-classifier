@@ -77,7 +77,7 @@ list(APPEND CORE_SOURCE_FILES src/core/dataset.cc
                               src/core/model.cc
                               src/core/image.cc
                               src/core/executable_logic.cc
-                              data/mock_data.txt
+        data/testing_dataset.txt
                               data/trainingimagesandlabels.txt)
 
 list(APPEND SOURCE_FILES    ${CORE_SOURCE_FILES}
