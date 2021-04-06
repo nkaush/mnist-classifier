@@ -59,16 +59,26 @@ std::istream& operator>>(istream& input, Dataset& dataset) {
   dataset.size_++;
 
   string current_label;
-  while (getline(input, current_label)) { // continue while there is a label
+  while (!input.eof() && getline(input, current_label)) { 
+    // continue while there is a label
     string next_line;
     vector<string> lines;
     // aggregate all the lines in the image, assuming all images are same size
     for (size_t line_index = 0; line_index < image_height; line_index++) {
       getline(input, next_line);
+      
+      // Only need to check width because if height was off line would be a label
+      if (next_line.size() != first_image.GetWidth()) {
+        // label lengths are also different than line lengths
+        throw std::invalid_argument("The images are not of uniform size");
+      }
       lines.push_back(next_line);
     }
-
-    char label = current_label.at(0);  // assume, for now the label is 1 char
+    
+    if (current_label.empty()) {
+      throw std::invalid_argument("Image is missing a label.");
+    }
+    char label = current_label.at(0);  // assume, for now the label is 1st char
     dataset.AddImage(label, lines);
   }
 
@@ -93,34 +103,40 @@ void Dataset::AddImage(char label, const vector<string>& image_lines) {
   size_++;
 }
 
-Image Dataset::ParseFirstImage(istream& in) const {
+Image Dataset::ParseFirstImage(istream& input) const {
   string label_string;
-  getline(in, label_string);
-  char label = label_string.at(0);
-
+  getline(input, label_string);
+  
+  // If the file is empty, the first line will be empty!
+  if (label_string.empty()) {
+    throw std::invalid_argument("The provided training data file is empty.");
+  }
+  
   string first_line;
-  getline(in, first_line);
-  size_t image_width = first_line.size();
-
+  getline(input, first_line);
   vector<string> lines = {first_line};
 
   string line;
-  getline(in, line);
-
+  getline(input, line);
   std::streampos original_position;
 
-  // Add lines to the image until we read the next label
-  while (line.size() == image_width) {
+  // Add lines to the image until we read the next label or reach end of file
+  while (!input.eof() && line.size() == first_line.size()) {
     // Adapted from https://stackoverflow.com/a/27331411
-    original_position = in.tellg();
+    original_position = input.tellg();
     lines.push_back(line);
-    getline(in, line);
+    getline(input, line);
   }
 
   // roll back the stream to stored position so we can re-access the next label
-  in.seekg(original_position);
+  if (!input.eof()) {
+    input.seekg(original_position);
+  } else {
+    lines.push_back(line); // if the dataset is 1 image, add the last line
+  }
 
-  return Image(EncodeShadingStrings(lines), label);
+  // The label will be the first (and only) character in label_string
+  return Image(EncodeShadingStrings(lines), label_string.at(0));
 }
 
 vector<vector<Shading>> Dataset::EncodeShadingStrings(

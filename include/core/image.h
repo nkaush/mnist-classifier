@@ -67,6 +67,12 @@ class Image {
      * @return a Shading enum encoding of the requested pixel
      */
     Shading GetPixel(size_t row, size_t column) const;
+    
+    /**
+     * Getter for the pixel grid used for testing.
+     * @return a 2D-vector of the pixels in this image
+     */
+    std::vector<std::vector<Shading>> GetPixelGrid() const;
   
     /**
      * Maps a digit encoding of a Shading enum to the Shading enum itself. This

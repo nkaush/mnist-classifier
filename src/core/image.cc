@@ -46,4 +46,8 @@ Shading Image::GetPixel(size_t row, size_t column) const {
   return pixels_.at(row).at(column);
 }
 
+vector<vector<Shading>> Image::GetPixelGrid() const { 
+  return pixels_; 
+}
+
 } // namespace naivebayes
