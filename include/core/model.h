@@ -63,7 +63,7 @@ class Model {
      * @param model - a Model object to insert into the ostream
      * @return the ostream after the model has been inserted
      */
-    friend std::ostream &operator<<(std::ostream &output, const Model& model);
+    friend std::ostream &operator<<(std::ostream& output, const Model& model);
 
     /**
      * Overloaded extraction operator - extracts a model from the given stream.
@@ -71,8 +71,8 @@ class Model {
      * @param model - a Model object to fill with the serialized model 
      * @return the istream after the model has been extracted from it
      */
-    friend std::istream &operator>>(std::istream &input, Model& model);
-
+    friend std::istream &operator>>(std::istream& input, Model& model);
+    
   private:
     // Stores the likelihood of each class and all features for each class
     std::map<char, Classification> classifications_;

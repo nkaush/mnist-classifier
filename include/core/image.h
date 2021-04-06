@@ -54,8 +54,18 @@ class Image {
      */
     size_t GetWidth() const;
     
+    /**
+     * Getter for the label corresponding to this image.
+     * @return a char indicating the label of the image
+     */
     char GetLabel() const;
     
+    /**
+     * Getter for the Shading at a particular pixel.
+     * @param row - the index of the row of the pixel requested
+     * @param column - the index of the column of the pixel requested
+     * @return a Shading enum encoding of the requested pixel
+     */
     Shading GetPixel(size_t row, size_t column) const;
   
     /**
