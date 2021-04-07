@@ -46,8 +46,8 @@ void Model::Train(const Dataset& dataset) {
 
     float smoothed_class_count = 
         static_cast<float>(group.size()) + laplace_smoothing_;
-    // TODO WEEK 2 - add log10 here
-    float class_likelihood = smoothed_class_count / smoothed_dataset_size;
+
+    float class_likelihood = log10(smoothed_class_count / smoothed_dataset_size);
 
     map<Shading, vector<vector<float>>> feature_likelihoods =
         CalculateFeatureLikelihoods(group, labels.size());
@@ -80,8 +80,8 @@ map<Shading, vector<vector<float>>> Model::CalculateFeatureLikelihoods(
         float smoothed_pixel_shading_count =
             laplace_smoothing_ + static_cast<float>(shading_count.second);
 
-        // TODO WEEK 2 - add log10 here
-        float likelihood = smoothed_pixel_shading_count / smoothed_group_count;
+        float likelihood = 
+            log10(smoothed_pixel_shading_count / smoothed_group_count);
         
         auto likelihood_iterator = feature_likelihoods.find(shading_count.first);
         likelihood_iterator->second.at(row).at(column) = likelihood;
@@ -188,6 +188,66 @@ std::istream& operator>>(std::istream& input, Model& model) {
   }
   
   return input;
+}
+
+char Model::Classify(const Image& image) const {
+  vector<float> likelihoods;
+  vector<char> labels;
+
+  for (const auto& class_group : classifications_) {
+    float score = class_group.second.class_likelihood_;
+    labels.push_back(class_group.first);
+
+    for (size_t row = 0; row < image.GetHeight(); row++) {
+      for (size_t column = 0; column < image.GetWidth(); column++) {
+        Shading shading = image.GetPixel(row, column);
+        score += GetFeatureLikelihood(class_group.first, shading, row, column);
+      }
+    }
+    likelihoods.push_back(score);
+  }
+
+  size_t idx_max_score = std::distance(likelihoods.begin(),
+                                       std::max_element(likelihoods.begin(),
+                                                        likelihoods.end()));
+
+  return labels.at(idx_max_score);
+}
+
+float Model::Test(const Dataset& dataset) const {
+  size_t correct = 0;
+  size_t index = 0;
+  
+  map<char, size_t> label_indices;
+  size_t label_index = 0;
+  for (const auto& classification : classifications_) {
+    label_indices.insert(pair<char, size_t>(classification.first, label_index));
+    label_index++;
+  }
+  
+  vector<size_t> matrix_row(label_indices.size(), 0);
+  vector<vector<size_t>> confusion_matrix(label_indices.size(), matrix_row);
+
+  for (char label : dataset.GetDistinctLabels()) {
+    for (const Image& image : dataset.GetImageGroup(label)) {
+      if (index % 100 == 0) {
+        std::cout << "Index: " << index << std::endl;
+      }
+      char predicted = Classify(image);
+      
+      size_t row = label_indices.at(image.GetLabel());
+      size_t column = label_indices.at(predicted);
+      
+      confusion_matrix.at(row).at(column)++;
+      
+      if (predicted == label) {
+        correct++;
+      }
+      index++;
+    }
+  }
+
+  return static_cast<float>(correct) / static_cast<float>(dataset.GetSize());
 }
 
 } // namespace naivebayes

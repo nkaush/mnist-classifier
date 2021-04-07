@@ -35,7 +35,7 @@ class ExecutableLogic {
      * @return a 0 or 1, depending on the result of executing the CLI logic.
      */
     int Execute(const std::string& train_flag, const std::string& load_flag,
-                const std::string& save_flag);
+                const std::string& save_flag, const std::string& test_flag);
   private:
     Model model_;
 
@@ -59,6 +59,8 @@ class ExecutableLogic {
      * @param dataset_path - a string indicating the path of the dataset to load
      */
     void TrainModel(const std::string& dataset_path);
+    
+    void TestModel(const std::string& dataset_path);
 };
 
 }

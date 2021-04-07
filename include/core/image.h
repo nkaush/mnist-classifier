@@ -34,6 +34,8 @@ class Image {
 
     // Stores rules about how to map characters in a file to Shading encodings
     static const std::map<char, Shading> kPixelShadings;
+    
+    Image() = default;
   
     /**
      * Instantiates an Image with the provided pixels and label.

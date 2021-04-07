@@ -77,7 +77,7 @@ list(APPEND CORE_SOURCE_FILES src/core/dataset.cc
                               src/core/model.cc
                               src/core/image.cc
                               src/core/executable_logic.cc
-        data/testing_dataset.txt
+                              data/testing_dataset.txt
                               data/trainingimagesandlabels.txt)
 
 list(APPEND SOURCE_FILES    ${CORE_SOURCE_FILES}
@@ -97,6 +97,7 @@ ci_make_app(
         CINDER_PATH     ${CINDER_PATH}
         SOURCES         apps/cinder_app_main.cc ${SOURCE_FILES}
         INCLUDES        include
+        LIBRARIES       json_lib
 )
 
 ci_make_app(

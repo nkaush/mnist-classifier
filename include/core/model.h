@@ -40,6 +40,15 @@ class Model {
      * @param dataset - a Dataset object containing encoded images from a stream 
      */
     void Train(const Dataset& dataset);
+
+    float Test(const Dataset& dataset) const;
+    
+    /**
+     * Classify the given Image by comparing its features to the model.
+     * @param image - an Image object to classify
+     * @return a char indicating the predicted label of the Image
+     */
+    char Classify(const Image& image) const;
     
     /**
      * Getter for the likelihood of the occurrence of a class.

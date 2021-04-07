@@ -14,9 +14,12 @@ using std::string;
 ExecutableLogic::ExecutableLogic() : model_(Model()) {}
 
 int ExecutableLogic::Execute(const string& train_flag, const string& load_flag, 
-                             const string& save_flag) {
+                             const string& save_flag, const string& test_flag) {
   // We can't allow the user to both train a model and load a model
-  if (!train_flag.empty() && !load_flag.empty()) {
+  bool should_train = !train_flag.empty();
+  bool should_load = !load_flag.empty();
+  
+  if (should_train && should_load) {
     std::cout << "You must either train a model or load a model, not both!";
     std::cout << std::endl;
 
@@ -25,6 +28,11 @@ int ExecutableLogic::Execute(const string& train_flag, const string& load_flag,
     TrainModel(train_flag);
   } else if (!load_flag.empty()) {
     LoadModel(load_flag);
+  }
+  
+  // We can only test if we have a dataset and have a model loaded
+  if (!test_flag.empty() && (should_train || should_load)) {
+    TestModel(test_flag);
   }
 
   if (!save_flag.empty()) {
@@ -64,6 +72,23 @@ void ExecutableLogic::TrainModel(const string& dataset_path) {
 
     model_.Train(dataset);
     std::cout << "done." << std::endl;
+  }
+}
+
+void ExecutableLogic::TestModel(const string& dataset_path) {
+
+  if (!dataset_path.empty()) {
+    std::ifstream input_file(dataset_path);
+
+    if (input_file.is_open()) {
+      Dataset dataset = Dataset();
+      input_file >> dataset; // Add images from the training file to the dataset
+      std::cout << "Testing model..." << std::endl;
+
+      float score = model_.Test(dataset);
+
+      std::cout << "Accuracy: " << score << std::endl;
+    }
   }
 }
 
