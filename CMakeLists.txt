@@ -62,7 +62,6 @@ if(NOT catch2_POPULATED)
 endif()
 
 # Load the gflags library from a homebrew local installation 
-set(gflags_DIR /usr/local/Cellar/gflags/2.2.2)
 find_package(gflags REQUIRED)
 FetchContent_GetProperties(gflags)
 include_directories(${gflags_INCLUDE_DIR})
