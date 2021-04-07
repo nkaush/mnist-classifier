@@ -6,6 +6,8 @@
 #define NAIVE_BAYES_MODEL_H
 
 #include <nlohmann/json.hpp>
+#include <thread>
+#include <future>
 
 #include "core/dataset.h"
 
@@ -40,8 +42,11 @@ class Model {
      * @param dataset - a Dataset object containing encoded images from a stream 
      */
     void Train(const Dataset& dataset);
+    
+    std::vector<std::vector<size_t>> Test(const Dataset& dataset) const;
 
-    float Test(const Dataset& dataset) const;
+    std::vector<std::vector<size_t>> MultiThreadedTest(
+        const Dataset& dataset) const;
     
     /**
      * Classify the given Image by comparing its features to the model.
@@ -68,6 +73,9 @@ class Model {
      */
     float GetFeatureLikelihood(char class_label, Shading shading, 
                                size_t row, size_t column) const;
+    
+    static float CalculateAccuracy(
+        const std::vector<std::vector<size_t>>& confusion_matrix);
     
     /**
      * Overloaded insertion operator - streams model into a given output stream.
@@ -98,7 +106,7 @@ class Model {
     static const std::string kJsonSchemaLabelKey; 
     static const std::string kJsonSchemaClassKey; 
     static const std::string kJsonSchemaShadingKey; 
-
+    
     /**
      * Calculates the conditional likelihood of a Shading appearing in an image
      * for all pixels in a provided vector of images with the same label.
@@ -134,6 +142,22 @@ class Model {
      */
     static std::map<Shading, size_t> CountPixelShadings(
         const std::vector<Image>& group, size_t row, size_t column);
+
+    std::vector<std::pair<std::thread,
+        std::future<std::vector<std::vector<size_t>>>>>
+    CreateTestThreads(const Dataset& dataset,
+                      const std::map<char, size_t>& label_indices) const;
+  
+    std::vector<std::vector<size_t>> JoinTestThreads(
+        std::vector<std::pair<std::thread,
+            std::future<std::vector<std::vector<size_t>>>>>& threads,
+        const std::map<char, size_t>& label_indices) const;
+  
+    void TestSingleImageGroup(
+        std::promise<std::vector<std::vector<size_t>>> thread_result,
+        const std::vector<Image>& image_group,
+        const std::map<char, size_t>& label_indices,
+        size_t thread_index) const;
 };
 
 } // namespace naivebayes

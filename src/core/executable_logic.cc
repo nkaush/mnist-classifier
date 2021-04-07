@@ -9,12 +9,14 @@
 
 namespace naivebayes {
 
+using std::vector;
 using std::string;
 
 ExecutableLogic::ExecutableLogic() : model_(Model()) {}
 
 int ExecutableLogic::Execute(const string& train_flag, const string& load_flag, 
-                             const string& save_flag, const string& test_flag) {
+                             const string& save_flag, const string& test_flag,
+                             bool is_test_multi_threaded) {
   // We can't allow the user to both train a model and load a model
   bool should_train = !train_flag.empty();
   bool should_load = !load_flag.empty();
@@ -29,14 +31,14 @@ int ExecutableLogic::Execute(const string& train_flag, const string& load_flag,
   } else if (!load_flag.empty()) {
     LoadModel(load_flag);
   }
-  
-  // We can only test if we have a dataset and have a model loaded
-  if (!test_flag.empty() && (should_train || should_load)) {
-    TestModel(test_flag);
-  }
 
   if (!save_flag.empty()) {
     SaveModel(save_flag);
+  }
+  
+  // We can only test if we have a dataset and have a model loaded
+  if (!test_flag.empty() && (should_train || should_load)) {
+    TestModel(test_flag, is_test_multi_threaded);
   }
   
   return EXIT_SUCCESS;
@@ -75,7 +77,8 @@ void ExecutableLogic::TrainModel(const string& dataset_path) {
   }
 }
 
-void ExecutableLogic::TestModel(const string& dataset_path) {
+void ExecutableLogic::TestModel(const string& dataset_path, 
+                                bool is_test_multi_threaded) {
 
   if (!dataset_path.empty()) {
     std::ifstream input_file(dataset_path);
@@ -84,8 +87,15 @@ void ExecutableLogic::TestModel(const string& dataset_path) {
       Dataset dataset = Dataset();
       input_file >> dataset; // Add images from the training file to the dataset
       std::cout << "Testing model..." << std::endl;
-
-      float score = model_.Test(dataset);
+      
+      vector<vector<size_t>> confusion_matrix;
+      if (is_test_multi_threaded) {
+        confusion_matrix = model_.MultiThreadedTest(dataset);
+      } else {
+        confusion_matrix = model_.Test(dataset);
+      }
+      
+      float score = Model::CalculateAccuracy(confusion_matrix);
 
       std::cout << "Accuracy: " << score << std::endl;
     }
@@ -101,5 +111,7 @@ void ExecutableLogic::ValidateFilePath(const string& file_path) {
 
   located_file.close();
 }
+
+void ExecutableLogic::SaveConfusionMatrix() const {}
 
 } // namespace naivebayes

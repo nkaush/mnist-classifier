@@ -16,7 +16,8 @@ namespace naivebayes {
  */
 enum class Shading{
   kWhite = 0,
-  kBlack = 1
+  kBlack = 1,
+  kGray = 2
 };
 
 /**

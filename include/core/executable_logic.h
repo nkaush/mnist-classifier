@@ -32,10 +32,15 @@ class ExecutableLogic {
      * @param load_flag - a string indicating the file path of the model file
      *                    to load into the model in memory
      * @param save_flag - a string indicating the file to save this model to
+     * @param test_flag - a string indicating the file path of the dataset 
+     *                     to test the model on
+     * @param is_test_multi_threaded - bool indicating whether to multi thread 
+     *                                 the testing, if we are to test the model
      * @return a 0 or 1, depending on the result of executing the CLI logic.
      */
     int Execute(const std::string& train_flag, const std::string& load_flag,
-                const std::string& save_flag, const std::string& test_flag);
+                const std::string& save_flag, const std::string& test_flag,
+                bool is_test_multi_threaded);
   private:
     Model model_;
 
@@ -60,7 +65,9 @@ class ExecutableLogic {
      */
     void TrainModel(const std::string& dataset_path);
     
-    void TestModel(const std::string& dataset_path);
+    void TestModel(const std::string& dataset_path, bool is_test_multi_threaded);
+    
+    void SaveConfusionMatrix() const;
 };
 
 }

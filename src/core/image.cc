@@ -11,10 +11,10 @@ using std::vector;
 using std::string;
 
 const map<char, Shading> Image::kPixelShadings =
-    {{' ', Shading::kWhite}, {'+', Shading::kBlack}, {'#', Shading::kBlack}};
+    {{' ', Shading::kWhite}, {'+', Shading::kGray}, {'#', Shading::kBlack}};
 
 const vector<Shading> Image::kDistinctShadingEncodings =
-    {Shading::kWhite, Shading::kBlack};
+    {Shading::kWhite, Shading::kBlack, Shading::kGray};
 
 size_t Image::GetHeight() const {
   return pixels_.size();
