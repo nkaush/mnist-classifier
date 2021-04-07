@@ -16,10 +16,11 @@ using std::thread;
 using std::vector;
 using std::string;
 using std::pair;
+using std::move;
 using std::map;
 
-using Matrix = std::vector<std::vector<size_t>>;
-using ThreadGroup = std::vector<std::pair<std::thread, std::future<Matrix>>>;
+using Matrix = vector<vector<size_t>>;
+using ThreadGroup = vector<pair<thread, future<Matrix>>>;
 
 const string Model::kJsonSchemaLabelKey = "label";
 const string Model::kJsonSchemaClassKey = "class_likelihood";
@@ -289,8 +290,7 @@ ThreadGroup Model::CreateTestThreads(
                        std::move(thread_result), images, label_indices,
                        thread_index);
 
-    thread_group.emplace_back(std::move(next_thread), 
-                              std::move(completable_future));
+    thread_group.emplace_back(move(next_thread), move(completable_future));
     thread_index++;
   }
   
@@ -329,7 +329,7 @@ Matrix Model::JoinTestThreads(
 
   // Adapted from https://stackoverflow.com/a/57134334
   // Go through each thread, get the resulting confusion matrix, and aggregate
-  for (auto& thread_pair : threads) {
+  for (pair<thread, future<Matrix>>& thread_pair : threads) {
     // Get the thread and the promised result wrapper
     thread image_group_thread = std::move(thread_pair.first);
     future<Matrix> result = std::move(thread_pair.second);
