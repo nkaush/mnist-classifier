@@ -122,6 +122,13 @@ class Model {
     
     float laplace_smoothing_;
     
+    // Determines the max number of images to analyze in each thread
+    static constexpr size_t kImagesPerThread = 50;
+    
+    // Determines how often to list the current index during a test
+    static constexpr size_t kLinearTestingFeedbackRate = 100;
+    static constexpr size_t kThreadedTestingFeedbackRate = 20;
+    
     // The spacing schema to use when generating the serialized model
     static constexpr size_t kJsonSchemaSpacing = 2;
     

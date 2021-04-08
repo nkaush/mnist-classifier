@@ -233,7 +233,7 @@ vector<vector<size_t>> Model::Test(const Dataset& dataset) const {
     const vector<Image>& images = dataset.GetImageGroup(label);
 
     for (const Image& image : images) {
-      if (index % 100 == 0) {
+      if (index % kLinearTestingFeedbackRate == 0) {
         std::cout << "Index: " << index << std::endl;
       }
       char predicted = Classify(image);
@@ -260,7 +260,7 @@ vector<vector<size_t>> Model::MultiThreadedTest(const Dataset& dataset) const {
 }
 
 map<char, size_t> Model::GetLabelIndices() const {
-  // Assign each char class label an index in our ConfusionMatrix
+  // Assign each char class label an index in our confusion matrix
   map<char, size_t> label_indices;
   size_t label_index = 0;
 
@@ -272,33 +272,8 @@ map<char, size_t> Model::GetLabelIndices() const {
   return label_indices;
 }
 
-void Model::TestImageGroup(
-    promise<Matrix> thread_result, const vector<Image>& image_group,
-    const map<char, size_t>& label_indices, size_t thread_index) const {
-  vector<size_t> matrix_row(label_indices.size(), 0);
-  Matrix confusion_matrix(label_indices.size(), matrix_row);
-
-  size_t index = 0;
-  for (const Image& image : image_group) {
-    if (index % 20 == 0) {
-      std::cout << "Thread " << thread_index << " Index: " << index << std::endl;
-    }
-    char predicted_label = Classify(image);
-
-    // Find the indices assigned to both the predicted and actual labels
-    size_t row = label_indices.at(image.GetLabel());
-    size_t column = label_indices.at(predicted_label);
-
-    confusion_matrix.at(row).at(column)++;
-    index++;
-  }
-
-  thread_result.set_value(confusion_matrix);
-}
-
 ThreadGroup Model::CreateTestThreads(
     const Dataset& dataset, const map<char, size_t>& label_indices) const {
-  size_t images_per_thread = 50;
   ThreadGroup thread_group;
   // Adapted from https://stackoverflow.com/a/57134334
   size_t thread_index = 0;
@@ -308,7 +283,7 @@ ThreadGroup Model::CreateTestThreads(
     size_t current_group_index = 0;
     while (current_group_index < images.size()) {
       auto begin_iterator = images.begin() + current_group_index;
-      auto end_iterator = images.begin() + current_group_index + images_per_thread;
+      auto end_iterator = images.begin() + current_group_index + kImagesPerThread;
       if (end_iterator > images.end()) {
         end_iterator = images.end();
       }
@@ -325,11 +300,35 @@ ThreadGroup Model::CreateTestThreads(
       thread_group.emplace_back(move(next_thread), move(completable_future));
       thread_index++;
       
-      current_group_index += images_per_thread;
+      current_group_index += kImagesPerThread;
     }
   }
 
   return thread_group;
+}
+
+void Model::TestImageGroup(
+    promise<Matrix> thread_result, const vector<Image>& image_group,
+    const map<char, size_t>& label_indices, size_t thread_index) const {
+  vector<size_t> matrix_row(label_indices.size(), 0);
+  Matrix confusion_matrix(label_indices.size(), matrix_row);
+
+  size_t index = 0;
+  for (const Image& image : image_group) {
+    if (index % kThreadedTestingFeedbackRate == 0) {
+      std::cout << "Thread " << thread_index << " Index: " << index << std::endl;
+    }
+    char predicted_label = Classify(image);
+
+    // Find the indices assigned to both the predicted and actual labels
+    size_t row = label_indices.at(image.GetLabel());
+    size_t column = label_indices.at(predicted_label);
+
+    confusion_matrix.at(row).at(column)++;
+    index++;
+  }
+
+  thread_result.set_value(confusion_matrix);
 }
 
 Matrix Model::JoinTestThreads(

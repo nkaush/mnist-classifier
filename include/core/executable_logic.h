@@ -46,10 +46,23 @@ class ExecutableLogic {
   private:
     Model model_;
     
+    // The delimiter to use when generating the csv file
     static constexpr char kCsvElementDelimiter = ',';
-    static constexpr char kCsvLineDelimiter = '\n';
     
-    static void ValidateFilePath(const std::string& file_path) ;
+    // Messages to print throughout executing the user's request
+    static const std::string kModelAccuracyMessage;
+    static const std::string kTestingModelMessage;
+
+    static const std::string kTrainingModelMessage;
+    
+    static const std::string kLoadingModelMessage;
+    static const std::string kLoadingConflictMessage;
+    
+    static const std::string kSavingModelMessage;
+    static const std::string kSavingConfusionMatrixMessage;
+    static const std::string kConfusionMatrixColumnLabel;
+    
+    static const std::string kFinishedMessage;
     
     /**
      * Save the model to the specified file path. Creates a file, if the
@@ -70,10 +83,26 @@ class ExecutableLogic {
      */
     void TrainModel(const std::string& dataset_path);
     
+    /**
+     * Tests the model linearly or concurrently, depending on the request to 
+     * multi-thread with the dataset provided. Saves the confusion matrix to the
+     * path given, if the confusion matrix path is not empty.
+     * @param dataset_path - a string indicating the file path of the dataset to
+     *                       test the model on
+     * @param is_test_multi_threaded - a bool indicating whether to use multiple 
+     *                                 threads when testing the model
+     * @param confusion_csv_path - a string indicating the file path to save the
+     *                             confusion matrix to          
+     */
     void TestModel(const std::string& dataset_path, 
                    bool is_test_multi_threaded, 
                    const std::string& confusion_csv_path) const;
     
+    /**
+     * 
+     * @param save_path 
+     * @param matrix 
+     */
     void SaveConfusionMatrix(const std::string& save_path, 
                              const std::vector<std::vector<size_t>>& matrix) 
         const;

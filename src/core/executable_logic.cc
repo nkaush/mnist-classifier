@@ -14,6 +14,22 @@ using std::string;
 using std::pair;
 using std::map;
 
+const string ExecutableLogic::kModelAccuracyMessage = "Accuracy: ";
+const string ExecutableLogic::kTestingModelMessage = "Testing model...";
+
+const string ExecutableLogic::kTrainingModelMessage = "Training model...";
+
+const string ExecutableLogic::kLoadingModelMessage = "Loading model...";
+const string ExecutableLogic::kLoadingConflictMessage = 
+    "You must either train a model or load a model, not both!";
+
+const string ExecutableLogic::kSavingModelMessage = "Saving model...";
+const string ExecutableLogic::kSavingConfusionMatrixMessage = 
+    "Saving confusion matrix...";
+const string ExecutableLogic::kConfusionMatrixColumnLabel = "Predicted";
+
+const string ExecutableLogic::kFinishedMessage = "done.";
+
 ExecutableLogic::ExecutableLogic() : model_(Model()) {}
 
 int ExecutableLogic::Execute(const string& train_flag, const string& load_flag, 
@@ -25,13 +41,13 @@ int ExecutableLogic::Execute(const string& train_flag, const string& load_flag,
   bool should_load = !load_flag.empty();
   
   if (should_train && should_load) {
-    std::cout << "You must either train a model or load a model, not both!";
+    std::cout << kLoadingConflictMessage;
     std::cout << std::endl;
 
     return EXIT_FAILURE; 
-  } else if (!train_flag.empty()) {
+  } else if (should_train) {
     TrainModel(train_flag);
-  } else if (!load_flag.empty()) {
+  } else if (should_load) {
     LoadModel(load_flag);
   }
 
@@ -51,9 +67,9 @@ void ExecutableLogic::SaveModel(const string& file_path) const {
   std::ofstream output_file(file_path);
 
   if (output_file.is_open()) {
-    std::cout << "Saving model...";
+    std::cout << kSavingModelMessage;
     output_file << model_;  // Serialize the model and save to the given file
-    std::cout << "done." << std::endl;
+    std::cout << kFinishedMessage << std::endl;
   }
 }
 
@@ -61,9 +77,9 @@ void ExecutableLogic::LoadModel(const string& model_path) {
   std::ifstream model_file(model_path);
 
   if (model_file.is_open()) {
-    std::cout << "Loading model...";
+    std::cout << kLoadingModelMessage;
     model_file >> model_;  // Deserialize the model and load it in the stack
-    std::cout << "done." << std::endl;
+    std::cout << kFinishedMessage << std::endl;
   }
 }
 
@@ -73,10 +89,10 @@ void ExecutableLogic::TrainModel(const string& dataset_path) {
   if (input_file.is_open()) {
     Dataset dataset = Dataset();
     input_file >> dataset;  // Add images from the training file to the dataset
-    std::cout << "Training model...";
+    std::cout << kTrainingModelMessage;
 
     model_.Train(dataset);
-    std::cout << "done." << std::endl;
+    std::cout << kFinishedMessage << std::endl;
   }
 }
 
@@ -88,7 +104,7 @@ void ExecutableLogic::TestModel(const string& dataset_path,
   if (input_file.is_open()) {
     Dataset dataset = Dataset();
     input_file >> dataset; // Add images from the training file to the dataset
-    std::cout << "Testing model..." << std::endl;
+    std::cout << kTestingModelMessage << std::endl;
     
     vector<vector<size_t>> confusion_matrix;
     if (is_test_multi_threaded) {
@@ -103,7 +119,7 @@ void ExecutableLogic::TestModel(const string& dataset_path,
     
     float score = Model::CalculateAccuracy(confusion_matrix);
 
-    std::cout << "Accuracy: " << score << std::endl;
+    std::cout << kModelAccuracyMessage << score << std::endl;
   }
 }
 
@@ -111,15 +127,17 @@ void ExecutableLogic::SaveConfusionMatrix(
     const string& save_path, const vector<vector<size_t>>& matrix) const {
   std::ofstream output_file(save_path);
 
+  std::cout << kSavingConfusionMatrixMessage;
   if (output_file.is_open()) {
     map<char, size_t> label_indices = model_.GetLabelIndices();
     
-    // Add the "predicted" title to the top row
-    size_t middle_index = matrix.size() / 2;
+    size_t middle_index = matrix.size() / 2; // middle is half the size...
+    // We should not add a comma AFTER the last element, so subtract 1
     size_t count_after_middle = matrix.size() - middle_index - 1;
     
-    // Add one to account for the offset row labels
-    output_file << string(middle_index + 1, kCsvElementDelimiter) << "Predicted";
+    // Add one extra comma to account for the offset row labels
+    output_file << string(middle_index + 1, kCsvElementDelimiter);
+    output_file << kConfusionMatrixColumnLabel;
     output_file << string(count_after_middle, kCsvElementDelimiter) << std::endl;
     
     // Insert corresponding label into stored index and add to csv column labels
@@ -131,6 +149,7 @@ void ExecutableLogic::SaveConfusionMatrix(
     }
     output_file << std::endl;
     
+    // Write each row to the file
     for (size_t row_idx = 0; row_idx < matrix.size(); row_idx++) {
       output_file << row_labels.at(row_idx);
       for (size_t count : matrix.at(row_idx)) {
@@ -141,16 +160,7 @@ void ExecutableLogic::SaveConfusionMatrix(
   }
   
   output_file.close();
-}
-
-void ExecutableLogic::ValidateFilePath(const string& file_path) {
-  std::ifstream located_file(file_path);
-
-  if (!located_file.is_open()) {
-    throw std::invalid_argument("The file path is not valid.");
-  }
-
-  located_file.close();
+  std::cout << kFinishedMessage << std::endl;
 }
 
 } // namespace naivebayes
