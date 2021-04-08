@@ -223,15 +223,8 @@ char Model::Classify(const Image& image) const {
 }
 
 vector<vector<size_t>> Model::Test(const Dataset& dataset) const {
-  map<char, size_t> label_indices;
-  size_t label_index = 0;
-
-  // Assign each char class label an index in our ConfusionMatrix
-  for (const auto& classification : classifications_) {
-    label_indices.insert(pair<char, size_t>(classification.first, label_index));
-    label_index++;
-  }
-
+  map<char, size_t> label_indices = GetLabelIndices();
+  
   vector<size_t> matrix_row(label_indices.size(), 0);
   Matrix confusion_matrix(label_indices.size(), matrix_row);
 
@@ -257,14 +250,7 @@ vector<vector<size_t>> Model::Test(const Dataset& dataset) const {
 }
 
 vector<vector<size_t>> Model::MultiThreadedTest(const Dataset& dataset) const {
-  // Assign each char class label an index in our ConfusionMatrix
-  map<char, size_t> label_indices;
-  size_t label_index = 0;
-  
-  for (const auto& classification : classifications_) {
-    label_indices.insert(pair<char, size_t>(classification.first, label_index));
-    label_index++;
-  }
+  map<char, size_t> label_indices = GetLabelIndices();
 
   // Create threads to classify groups of Images and then aggregate results
   ThreadGroup threads = CreateTestThreads(dataset, label_indices);
@@ -273,31 +259,20 @@ vector<vector<size_t>> Model::MultiThreadedTest(const Dataset& dataset) const {
   return confusion_matrix;
 }
 
-ThreadGroup Model::CreateTestThreads(
-    const Dataset& dataset, const map<char, size_t>& label_indices) const {
+map<char, size_t> Model::GetLabelIndices() const {
+  // Assign each char class label an index in our ConfusionMatrix
+  map<char, size_t> label_indices;
+  size_t label_index = 0;
 
-  ThreadGroup thread_group;
-  // Adapted from https://stackoverflow.com/a/57134334
-  size_t thread_index = 0;
-  for (char label : dataset.GetDistinctLabels()) {
-    const vector<Image>& images = dataset.GetImageGroup(label);
-
-    promise<Matrix> thread_result;
-    future<Matrix> completable_future = thread_result.get_future();
-
-    // Adapted from https://www.reddit.com/r/cpp_questions/comments/8top49/call_to_deleted_function_when_using_threads/
-    thread next_thread(&Model::TestSingleImageGroup, std::ref(*this),
-                       std::move(thread_result), images, label_indices,
-                       thread_index);
-
-    thread_group.emplace_back(move(next_thread), move(completable_future));
-    thread_index++;
+  for (const auto& classification : classifications_) {
+    label_indices.insert(pair<char, size_t>(classification.first, label_index));
+    label_index++;
   }
   
-  return thread_group;
+  return label_indices;
 }
 
-void Model::TestSingleImageGroup(
+void Model::TestImageGroup(
     promise<Matrix> thread_result, const vector<Image>& image_group,
     const map<char, size_t>& label_indices, size_t thread_index) const {
   vector<size_t> matrix_row(label_indices.size(), 0);
@@ -319,6 +294,42 @@ void Model::TestSingleImageGroup(
   }
 
   thread_result.set_value(confusion_matrix);
+}
+
+ThreadGroup Model::CreateTestThreads(
+    const Dataset& dataset, const map<char, size_t>& label_indices) const {
+  size_t images_per_thread = 50;
+  ThreadGroup thread_group;
+  // Adapted from https://stackoverflow.com/a/57134334
+  size_t thread_index = 0;
+  for (char label : dataset.GetDistinctLabels()) {
+    const vector<Image>& images = dataset.GetImageGroup(label);
+
+    size_t current_group_index = 0;
+    while (current_group_index < images.size()) {
+      auto begin_iterator = images.begin() + current_group_index;
+      auto end_iterator = images.begin() + current_group_index + images_per_thread;
+      if (end_iterator > images.end()) {
+        end_iterator = images.end();
+      }
+      
+      vector<Image> sub_group(begin_iterator, end_iterator);
+      promise<Matrix> thread_result;
+      future<Matrix> completable_future = thread_result.get_future();
+
+      // Adapted from https://www.reddit.com/r/cpp_questions/comments/8top49/call_to_deleted_function_when_using_threads/
+      thread next_thread(&Model::TestImageGroup, std::ref(*this),
+                         std::move(thread_result), sub_group, 
+                         label_indices, thread_index);
+
+      thread_group.emplace_back(move(next_thread), move(completable_future));
+      thread_index++;
+      
+      current_group_index += images_per_thread;
+    }
+  }
+
+  return thread_group;
 }
 
 Matrix Model::JoinTestThreads(

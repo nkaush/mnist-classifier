@@ -88,6 +88,8 @@ class Model {
     float GetFeatureLikelihood(char class_label, Shading shading, 
                                size_t row, size_t column) const;
     
+    std::map<char, size_t> GetLabelIndices() const;
+    
     /**
      * Calculates the accuracy of the model by tallying the number of correct
      * predictions in a confusion matrix and dividing by the total predictions.
@@ -187,11 +189,11 @@ class Model {
      *                        each class label in the confusion matrix generated
      * @param thread_index - a size_t index of the thread running this method
      */
-    void TestSingleImageGroup(
+    void TestImageGroup(
         std::promise<std::vector<std::vector<size_t>>> thread_result,
         const std::vector<Image>& image_group,
         const std::map<char, size_t>& label_indices, size_t thread_index) const;
-  
+    
     /**
      * Collects the matrix result of each thread and creates a confusion matrix.
      * @param thread_group - a vector of thread and confusion matrix pairs
