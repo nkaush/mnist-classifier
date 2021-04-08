@@ -19,14 +19,16 @@ using std::pair;
 using std::move;
 using std::map;
 
-using Matrix = vector<vector<size_t>>;
-using ThreadGroup = vector<pair<thread, future<Matrix>>>;
+using LongMatrix = vector<vector<size_t>>;
+using FloatMatrix = vector<vector<float>>;
+using ThreadGroup = vector<pair<thread, future<LongMatrix>>>;
 
 const string Model::kJsonSchemaLabelKey = "label";
 const string Model::kJsonSchemaClassKey = "class_likelihood";
 const string Model::kJsonSchemaShadingKey = "shading_likelihoods";
 
-Model::Model(float laplace_smoothing) : laplace_smoothing_(laplace_smoothing) {}
+Model::Model(size_t laplace_smoothing) 
+    : laplace_smoothing_(laplace_smoothing) {}
 
 float Model::GetClassLikelihood(char class_label) const {
   return classifications_.at(class_label).class_likelihood_;
@@ -35,7 +37,7 @@ float Model::GetClassLikelihood(char class_label) const {
 float Model::GetFeatureLikelihood(char class_label, Shading shading,
                                   size_t row, size_t column) const {
   Classification specified_class = classifications_.at(class_label);
-  vector<vector<float>>shading_likelihood =
+  FloatMatrix shading_likelihood =
       specified_class.shading_likelihoods_.at(shading);
 
   return shading_likelihood.at(row).at(column);
@@ -56,7 +58,7 @@ void Model::Train(const Dataset& dataset) {
 
     float class_likelihood = log10(smoothed_class_count / smoothed_dataset_size);
 
-    map<Shading, vector<vector<float>>> feature_likelihoods =
+    map<Shading, FloatMatrix> feature_likelihoods =
         CalculateFeatureLikelihoods(group, labels.size());
 
     Classification classification = {class_likelihood, feature_likelihoods};
@@ -64,13 +66,13 @@ void Model::Train(const Dataset& dataset) {
   }
 }
 
-map<Shading, vector<vector<float>>> Model::CalculateFeatureLikelihoods(
+map<Shading, FloatMatrix> Model::CalculateFeatureLikelihoods(
     const vector<Image>& class_group, size_t label_count) const {
   size_t row_count = class_group.at(0).GetHeight();
   size_t column_count = class_group.at(0).GetWidth();
 
   // Initialize the empty map so we can fill it by indexing as we iterate
-  map<Shading, vector<vector<float>>> feature_likelihoods = 
+  map<Shading, FloatMatrix> feature_likelihoods = 
       InitializeEmptyFeatureMap(row_count, column_count);
 
   float group_size_smooth_factor =
@@ -99,16 +101,16 @@ map<Shading, vector<vector<float>>> Model::CalculateFeatureLikelihoods(
   return feature_likelihoods;
 }
 
-map<Shading, vector<vector<float>>> Model::InitializeEmptyFeatureMap(
+map<Shading, FloatMatrix> Model::InitializeEmptyFeatureMap(
     size_t row_count, size_t column_count) {
-  map<Shading, vector<vector<float>>> feature_likelihoods;
+  map<Shading, FloatMatrix> feature_likelihoods;
   
   for (Shading shading : Image::kDistinctShadingEncodings) {
-    vector<vector<float>> empty_vector;
+    FloatMatrix empty_vector;
     empty_vector.resize(row_count, vector<float>(column_count));
 
     feature_likelihoods.insert(
-        pair<Shading, vector<vector<float>>>(shading, empty_vector));
+        pair<Shading, FloatMatrix>(shading, empty_vector));
   }
   
   return feature_likelihoods;
@@ -176,15 +178,15 @@ std::istream& operator>>(std::istream& input, Model& model) {
     
     float class_likelihood = classification[Model::kJsonSchemaClassKey];
 
-    map<string, vector<vector<float>>> parsed_json_object = 
+    map<string, FloatMatrix> parsed_json_object = 
         classification[Model::kJsonSchemaShadingKey];
-    map<Shading, vector<vector<float>>> shading_likelihood;
+    map<Shading, FloatMatrix> shading_likelihood;
     
     for (const auto& json_pairs : parsed_json_object) {
       Shading shading_encoding =
           Image::MapStringDigitEncodingToShading(json_pairs.first);
 
-      pair<Shading, vector<vector<float>>> encoded_pair(shading_encoding,
+      pair<Shading, FloatMatrix> encoded_pair(shading_encoding,
                                                         json_pairs.second);
       shading_likelihood.insert(encoded_pair);
     }
@@ -222,11 +224,11 @@ char Model::Classify(const Image& image) const {
   return labels.at(idx_max_score);
 }
 
-vector<vector<size_t>> Model::Test(const Dataset& dataset) const {
+LongMatrix Model::Test(const Dataset& dataset) const {
   map<char, size_t> label_indices = GetLabelIndices();
   
   vector<size_t> matrix_row(label_indices.size(), 0);
-  Matrix confusion_matrix(label_indices.size(), matrix_row);
+  LongMatrix confusion_matrix(label_indices.size(), matrix_row);
 
   size_t index = 0;
   for (char label : dataset.GetDistinctLabels()) {
@@ -249,12 +251,12 @@ vector<vector<size_t>> Model::Test(const Dataset& dataset) const {
   return confusion_matrix;
 }
 
-vector<vector<size_t>> Model::MultiThreadedTest(const Dataset& dataset) const {
+LongMatrix Model::MultiThreadedTest(const Dataset& dataset) const {
   map<char, size_t> label_indices = GetLabelIndices();
 
   // Create threads to classify groups of Images and then aggregate results
   ThreadGroup threads = CreateTestThreads(dataset, label_indices);
-  Matrix confusion_matrix = JoinTestThreads(threads, label_indices);
+  LongMatrix confusion_matrix = JoinTestThreads(threads, label_indices);
   
   return confusion_matrix;
 }
@@ -289,8 +291,8 @@ ThreadGroup Model::CreateTestThreads(
       }
       
       vector<Image> sub_group(begin_iterator, end_iterator);
-      promise<Matrix> thread_result;
-      future<Matrix> completable_future = thread_result.get_future();
+      promise<LongMatrix> thread_result;
+      future<LongMatrix> completable_future = thread_result.get_future();
 
       // Adapted from https://www.reddit.com/r/cpp_questions/comments/8top49/call_to_deleted_function_when_using_threads/
       thread next_thread(&Model::TestImageGroup, std::ref(*this),
@@ -308,10 +310,10 @@ ThreadGroup Model::CreateTestThreads(
 }
 
 void Model::TestImageGroup(
-    promise<Matrix> thread_result, const vector<Image>& image_group,
+    promise<LongMatrix> thread_result, const vector<Image>& image_group,
     const map<char, size_t>& label_indices, size_t thread_index) const {
   vector<size_t> matrix_row(label_indices.size(), 0);
-  Matrix confusion_matrix(label_indices.size(), matrix_row);
+  LongMatrix confusion_matrix(label_indices.size(), matrix_row);
 
   size_t index = 0;
   for (const Image& image : image_group) {
@@ -331,20 +333,20 @@ void Model::TestImageGroup(
   thread_result.set_value(confusion_matrix);
 }
 
-Matrix Model::JoinTestThreads(
+LongMatrix Model::JoinTestThreads(
     ThreadGroup& threads, const map<char, size_t>& label_indices) const {
   // Initialize out confusion matrix to be n-labels x n-labels of 0s
   vector<size_t> matrix_row(label_indices.size(), 0);
-  Matrix confusion_matrix(label_indices.size(), matrix_row);
+  LongMatrix confusion_matrix(label_indices.size(), matrix_row);
 
   // Adapted from https://stackoverflow.com/a/57134334
   // Go through each thread, get the resulting confusion matrix, and aggregate
-  for (pair<thread, future<Matrix>>& thread_pair : threads) {
+  for (pair<thread, future<LongMatrix>>& thread_pair : threads) {
     // Get the thread and the promised result wrapper
     thread image_group_thread = std::move(thread_pair.first);
-    future<Matrix> result = std::move(thread_pair.second);
+    future<LongMatrix> result = std::move(thread_pair.second);
 
-    Matrix thread_matrix = result.get(); // Get promised result from the thread
+    LongMatrix thread_matrix = result.get(); // retrieve result from promise
 
     // Aggregate the results
     for (size_t row = 0; row < confusion_matrix.size(); row++) {
@@ -359,7 +361,7 @@ Matrix Model::JoinTestThreads(
   return confusion_matrix;
 }
 
-float Model::CalculateAccuracy(const Matrix& confusion_matrix) {
+float Model::CalculateAccuracy(const LongMatrix& confusion_matrix) {
   size_t correct = 0;
   size_t prediction_count = 0;
   

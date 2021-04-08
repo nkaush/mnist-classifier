@@ -34,8 +34,9 @@ class Model {
     /**
      * Default constructor. The model must be initialized by either training
      * it with a Dataset or by loading a saved model from a stream.
+     * @param laplace_smoothing - a size_t of the smoothing to use when training
      */
-    Model(float laplace_smoothing=kDefaultLaplaceSmoothingFactor);
+    Model(size_t laplace_smoothing=kDefaultLaplaceSmoothingFactor);
 
     /**
      * Trains the model with the provided Dataset. Initializes the model.

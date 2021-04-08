@@ -18,7 +18,7 @@ using naivebayes::ExecutableLogic;
 int main(int argc, char** argv) {
   gflags::ParseCommandLineFlags(&argc, &argv, true);
   
-  ExecutableLogic logic = ExecutableLogic();
+  ExecutableLogic logic = ExecutableLogic(FLAGS_smoothing);
   
   return logic.Execute(FLAGS_train, FLAGS_load, FLAGS_save, FLAGS_test, 
                        FLAGS_confusion, FLAGS_multithread);

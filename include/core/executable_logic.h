@@ -15,11 +15,10 @@ namespace naivebayes {
 class ExecutableLogic {
   public: 
     /**
-     * Default constructor that initializes and empty model that will be filled 
-     * by files passed in from the command line or trained with files passed
-     * in via the command line.
+     * Initialized the logic object and the Model object it operates on.
+     * @param laplace_factor - the smoothing to use when training the model
      */
-    ExecutableLogic();
+    ExecutableLogic(size_t laplace_factor);
     
     /**
      * Executes the logic and returns the exit status code depending on whether 
@@ -99,9 +98,9 @@ class ExecutableLogic {
                    const std::string& confusion_csv_path) const;
     
     /**
-     * 
-     * @param save_path 
-     * @param matrix 
+     * Writes the confusion matrix provided to a CSV file.
+     * @param save_path - a string indicating the file path to save to
+     * @param matrix - a 2D-vector representing the confusion matrix
      */
     void SaveConfusionMatrix(const std::string& save_path, 
                              const std::vector<std::vector<size_t>>& matrix) 

@@ -24,17 +24,29 @@ class NaiveBayesApp : public ci::app::App {
   void mouseDrag(ci::app::MouseEvent event) override;
   void keyDown(ci::app::KeyEvent event) override;
 
-  // TODO: Delete this comment. Feel free to play around with these variables
-  // provided that you can see the entire UI on your screen.
-  const double kWindowSize = 875;
-  const double kMargin = 100;
-  const size_t kImageDimension = 28;
-
  private:
   Sketchpad sketchpad_;
-  char current_prediction_ = '\0';
+  char current_prediction_;
   
   Model model_;
+
+  static constexpr double kWindowSize = 700;
+  static constexpr double kMargin = 100;
+  static constexpr size_t kImageDimension = 28;
+  
+  static constexpr char kDefaultImageLabel = '\0';
+  
+  static constexpr uint8_t kBackgroundRedIntensity = 255;
+  static constexpr uint8_t kBackgroundGreenIntensity = 246;
+  static constexpr uint8_t kBackgroundBlueIntensity = 148;
+
+  static const char* kInstructionsColor;
+  static const char* kPredictionColor;
+  
+  static const std::string kModelFilePath;
+  static const std::string kUsageInstructions;
+  
+  static const std::string kPredictionIndicator;
 };
 
 }  // namespace visualizer

@@ -3,7 +3,6 @@
 //
 
 #include <iostream>
-#include <fstream>
 
 #include "core/dataset.h"
 #include "core/image.h"
@@ -36,7 +35,6 @@ std::vector<char> Dataset::GetDistinctLabels() const {
 }
 
 std::istream& operator>>(istream& input, Dataset& dataset) {
-  // TODO check for images out of shape
   Image first_image = dataset.ParseFirstImage(input);
 
   size_t image_height = first_image.GetHeight();

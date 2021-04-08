@@ -30,7 +30,8 @@ const string ExecutableLogic::kConfusionMatrixColumnLabel = "Predicted";
 
 const string ExecutableLogic::kFinishedMessage = "done.";
 
-ExecutableLogic::ExecutableLogic() : model_(Model()) {}
+ExecutableLogic::ExecutableLogic(size_t laplace_factor) 
+    : model_(Model(laplace_factor)) {}
 
 int ExecutableLogic::Execute(const string& train_flag, const string& load_flag, 
                              const string& save_flag, const string& test_flag,
