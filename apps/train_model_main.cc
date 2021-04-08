@@ -18,6 +18,11 @@ using naivebayes::ExecutableLogic;
 int main(int argc, char** argv) {
   gflags::ParseCommandLineFlags(&argc, &argv, true);
   
+  // Prevent a user from setting the unsigned smoothing factor to 0
+  if (FLAGS_smoothing < naivebayes::Model::kDefaultLaplaceSmoothingFactor) {
+    FLAGS_smoothing = naivebayes::Model::kDefaultLaplaceSmoothingFactor;
+  }
+  
   ExecutableLogic logic = ExecutableLogic(FLAGS_smoothing);
   
   return logic.Execute(FLAGS_train, FLAGS_load, FLAGS_save, FLAGS_test, 
