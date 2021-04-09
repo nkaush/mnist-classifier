@@ -1,33 +1,53 @@
 //
-// Created by Neil Kaushikkar on 4/1/21.
+// Created by Neil Kaushikkar on 4/4/21.
 //
 
 #include "core/image.h"
 
-#include <utility>
-
 namespace naivebayes {
 
+using std::map;
 using std::vector;
+using std::string;
 
-Image::Image(vector<vector<size_t>> pixels_to_set, char label_to_set) :
-  pixels_(std::move(pixels_to_set)), label_(label_to_set) {}
+const map<char, Shading> Image::kPixelShadings =
+    {{' ', Shading::kWhite}, {'+', Shading::kBlack}, {'#', Shading::kBlack}};
 
-size_t Image::GetWidth() const {
-  // Assume that image rows are uniform (we check in parsing function)
-  return pixels_.at(0).size();
-}
+const vector<Shading> Image::kDistinctShadingEncodings =
+    {Shading::kWhite, Shading::kBlack};
 
 size_t Image::GetHeight() const {
   return pixels_.size();
 }
 
-char Image::GetLabel() const {
-  return label_;
+size_t Image::GetWidth() const {
+  return pixels_.at(0).size();
 }
 
-const std::vector<std::vector<size_t>>& Image::GetPixels() const {
-  return pixels_;
+Shading Image::MapStringDigitEncodingToShading(const std::string& to_map) {
+  for (const Shading& shading : kDistinctShadingEncodings) {
+    string encoding_string = std::to_string(static_cast<int>(shading));
+    if (to_map == encoding_string) {
+      return shading;
+    }
+  }
+
+  throw std::invalid_argument("The shading encoding string provided is invalid.");
 }
 
+Image::Image(std::vector<std::vector<Shading>> pixels, char label) :
+  pixels_(std::move(pixels)), label_(label) {}
+
+char Image::GetLabel() const { 
+  return label_; 
 }
+
+Shading Image::GetPixel(size_t row, size_t column) const {
+  return pixels_.at(row).at(column);
+}
+
+vector<vector<Shading>> Image::GetPixelGrid() const { 
+  return pixels_; 
+}
+
+} // namespace naivebayes

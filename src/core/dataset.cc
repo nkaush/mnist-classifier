@@ -2,10 +2,11 @@
 // Created by Neil Kaushikkar on 4/1/21.
 //
 
-#include <fstream>
 #include <iostream>
+#include <fstream>
 
 #include "core/dataset.h"
+#include "core/image.h"
 
 namespace naivebayes {
 
@@ -14,24 +15,10 @@ using std::vector;
 using std::string;
 using std::map;
 
-const map<char, size_t> Dataset::kPixelShadings = {
-    {' ', 0}, {'+', 1}, {'#', 1}};
-
 Dataset::Dataset() : size_(0) {}
 
-// TODO add somewhere
-void Dataset::ValidateFilePath(const string& file_path) const {
-  std::ifstream located_file(file_path);
-
-  if (!located_file.is_open()) {
-    throw std::invalid_argument("The file path is not valid");
-  }
-
-  located_file.close();
-}
-
-const vector<Image>& Dataset::GetImageGroup(char group_class) const {
-  return class_groups_.at(group_class);
+const vector<Image>& Dataset::GetImageGroup(char class_label) const {
+  return class_groups_.at(class_label);
 }
 
 size_t Dataset::GetSize() const {
@@ -48,10 +35,10 @@ std::vector<char> Dataset::GetDistinctLabels() const {
   return labels;
 }
 
-std::istream& operator>>(std::istream& input, Dataset& dataset) {
+std::istream& operator>>(istream& input, Dataset& dataset) {
   // TODO check for images out of shape
-
   Image first_image = dataset.ParseFirstImage(input);
+
   size_t image_height = first_image.GetHeight();
   char first_image_label = first_image.GetLabel();
 
@@ -61,16 +48,26 @@ std::istream& operator>>(std::istream& input, Dataset& dataset) {
   dataset.size_++;
 
   string current_label;
-  while (getline(input, current_label)) {
+  while (!input.eof() && getline(input, current_label)) { 
+    // continue while there is a label
     string next_line;
     vector<string> lines;
     // aggregate all the lines in the image, assuming all images are same size
     for (size_t line_index = 0; line_index < image_height; line_index++) {
       getline(input, next_line);
+      
+      // Only need to check width because if height was off line would be a label
+      if (next_line.size() != first_image.GetWidth()) {
+        // label lengths are also different than line lengths
+        throw std::invalid_argument("The images are not of uniform size");
+      }
       lines.push_back(next_line);
     }
-
-    char label = current_label.at(0);  // assume, for now the label is 1 char
+    
+    if (current_label.empty()) {
+      throw std::invalid_argument("Image is missing a label.");
+    }
+    char label = current_label.at(0);  // assume, for now the label is 1st char
     dataset.AddImage(label, lines);
   }
 
@@ -78,7 +75,7 @@ std::istream& operator>>(std::istream& input, Dataset& dataset) {
 }
 
 void Dataset::AddImage(char label, const vector<string>& image_lines) {
-  vector<vector<size_t>> encoding = EncodeShadingStrings(image_lines);
+  vector<vector<Shading>> encoding = EncodeShadingStrings(image_lines);
   auto group_iterator = class_groups_.find(label);
 
   // If we have not seen an image from this class, add its label
@@ -90,48 +87,56 @@ void Dataset::AddImage(char label, const vector<string>& image_lines) {
     group_iterator = class_groups_.find(label);
   }
   // Create a new Image here and add to corresponding class group
-  group_iterator->second.emplace_back(encoding, label);
+  Image image = Image(encoding, label);
+  group_iterator->second.push_back(image);
   size_++;
 }
 
-Image Dataset::ParseFirstImage(istream& in) const {
+Image Dataset::ParseFirstImage(istream& input) const {
   string label_string;
-  getline(in, label_string);
-  char label = label_string.at(0);
-
+  getline(input, label_string);
+  
+  // If the file is empty, the first line will be empty!
+  if (label_string.empty()) {
+    throw std::invalid_argument("The provided training data file is empty.");
+  }
+  
   string first_line;
-  getline(in, first_line);
-  size_t image_width = first_line.size();
-
+  getline(input, first_line);
   vector<string> lines = {first_line};
 
   string line;
-  getline(in, line);
-
+  getline(input, line);
   std::streampos original_position;
 
-  // Adapted from https://stackoverflow.com/a/27331411
-  while (line.size() == image_width) {
-    original_position = in.tellg();  // stores the position of the stream
+  // Add lines to the image until we read the next label or reach end of file
+  while (!input.eof() && line.size() == first_line.size()) {
+    // Adapted from https://stackoverflow.com/a/27331411
+    original_position = input.tellg();
     lines.push_back(line);
-    getline(in, line);
+    getline(input, line);
   }
 
   // roll back the stream to stored position so we can re-access the next label
-  in.seekg(original_position);
+  if (!input.eof()) {
+    input.seekg(original_position);
+  } else {
+    lines.push_back(line); // if the dataset is 1 image, add the last line
+  }
 
-  return Image(EncodeShadingStrings(lines), label);
+  // The label will be the first (and only) character in label_string
+  return Image(EncodeShadingStrings(lines), label_string.at(0));
 }
 
-vector<vector<size_t>> Dataset::EncodeShadingStrings(
+vector<vector<Shading>> Dataset::EncodeShadingStrings(
     const vector<string>& shading) const {
-  vector<vector<size_t>> pixel_grid;
+  vector<vector<Shading>> pixel_grid;
 
   for (const string& row : shading) {
-    vector<size_t> pixel_row;
+    vector<Shading> pixel_row;
 
     for (char pixel : row) {
-      pixel_row.push_back(kPixelShadings.at(pixel));
+      pixel_row.push_back(Image::kPixelShadings.at(pixel));
     }
 
     pixel_grid.push_back(pixel_row);

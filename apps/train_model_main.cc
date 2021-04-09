@@ -1,49 +1,18 @@
-#include <core/dataset.h>
-#include <core/model.h>
+#include <gflags/gflags.h>
 
-#include <fstream>
-#include <iostream>
+#include <core/executable_logic.h>
 
-using naivebayes::Dataset;
-using naivebayes::Image;
-using naivebayes::Model;
+// Define the command line arguments and set the default value to empty strings
+DEFINE_string(train, "", "The file path to the dataset to train the model on.");
+DEFINE_string(save, "", "The file path to save the trained model to.");
+DEFINE_string(load, "", "The file path to load a pre-trained model from.");
 
-// TODO: You may want to change main's signature to take in argc and argv
-int main() {
-  // TODO: Replace this with code that reads the training data, trains a model,
-  // and saves the trained model to a file.
+using naivebayes::ExecutableLogic;
 
-  std::string path = "/Users/neilkaushikkar/Cinder/my-projects/naive-bayes-nkaush/data/trainingimagesandlabels.txt";
-  Dataset dataset = Dataset();
-
-  // Adapted from: http://www.cplusplus.com/reference/istream/istream/istream/
-  std::filebuf fb;
-  if (fb.open (path, std::ios::in)) {
-    std::istream in(&fb);
-
-    in >> dataset;
-  }
-
-  Model model = Model();
-  model.Train(dataset);
-//  Image first = dataset.GetImage(0);
-//
-//  for (const std::vector<size_t>& row : first.GetPixels()) {
-//    for (size_t pxl : row) {
-//      std::cout << pxl;
-//    }
-//    std::cout << std::endl;
-//  }
-//
-//  std::cout << std::endl;
-//  Image next = dataset.GetImage(1);
-//
-//  for (const std::vector<size_t>& row : next.GetPixels()) {
-//    for (size_t pxl : row) {
-//      std::cout << pxl;
-//    }
-//    std::cout << std::endl;
-//  }
-
-  return 0;
+int main(int argc, char** argv) {
+  gflags::ParseCommandLineFlags(&argc, &argv, true);
+  
+  ExecutableLogic logic = ExecutableLogic();
+  
+  return logic.Execute(FLAGS_train, FLAGS_load, FLAGS_save);
 }
