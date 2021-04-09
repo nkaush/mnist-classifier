@@ -62,7 +62,7 @@ void Model::Train(const Dataset& dataset) {
         CalculateFeatureLikelihoods(group, labels.size());
 
     Classification classification = {class_likelihood, feature_likelihoods};
-    classifications_.insert(pair<char, Classification>(label, classification));
+    classifications_[label] = classification;
   }
 }
 
@@ -80,11 +80,13 @@ map<Shading, FloatMatrix> Model::CalculateFeatureLikelihoods(
   float smoothed_group_count = 
       group_size_smooth_factor + static_cast<float>(class_group.size());
 
+  // Go through each pixel and calculate each feature likelihood
   for (size_t row = 0; row < row_count; row++) {
     for (size_t column = 0; column < column_count; column++) {
       map<Shading, size_t> pixel_shading_counts = 
           CountPixelShadings(class_group, row, column);
 
+      // Go through all Shading types and calculate likelihood for each
       for (pair<const Shading, size_t> shading_count : pixel_shading_counts) {
         float smoothed_pixel_shading_count =
             laplace_smoothing_ + static_cast<float>(shading_count.second);
@@ -92,8 +94,8 @@ map<Shading, FloatMatrix> Model::CalculateFeatureLikelihoods(
         float likelihood = 
             log10(smoothed_pixel_shading_count / smoothed_group_count);
         
-        auto likelihood_iterator = feature_likelihoods.find(shading_count.first);
-        likelihood_iterator->second.at(row).at(column) = likelihood;
+        feature_likelihoods.at(shading_count.first).at(row).at(column) = 
+            likelihood;
       }
     }
   }
@@ -106,11 +108,8 @@ map<Shading, FloatMatrix> Model::InitializeEmptyFeatureMap(
   map<Shading, FloatMatrix> feature_likelihoods;
   
   for (Shading shading : Image::kDistinctShadingEncodings) {
-    FloatMatrix empty_vector;
-    empty_vector.resize(row_count, vector<float>(column_count));
-
-    feature_likelihoods.insert(
-        pair<Shading, FloatMatrix>(shading, empty_vector));
+    FloatMatrix empty_vector(row_count, vector<float>(column_count));
+    feature_likelihoods[shading] = empty_vector;
   }
   
   return feature_likelihoods;
@@ -122,15 +121,14 @@ map<Shading, size_t> Model::CountPixelShadings(
   map<Shading, size_t> pixel_shading_counts;
   // Initialize all image_counts to 0
   for (Shading shading : Image::kDistinctShadingEncodings) {
-    pixel_shading_counts.insert(pair<Shading, size_t> (shading, 0));
+    pixel_shading_counts[shading] = 0;
   }
 
   for (const Image& image : group) {
     Shading shading_class = image.GetPixel(row, column);
 
     // increment the count of the specified shading
-    auto pixel_count_iterator = pixel_shading_counts.find(shading_class);
-    pixel_count_iterator->second++;
+    pixel_shading_counts.at(shading_class)++;
   }
 
   return pixel_shading_counts;
@@ -185,15 +183,12 @@ std::istream& operator>>(std::istream& input, Model& model) {
     for (const auto& json_pairs : parsed_json_object) {
       Shading shading_encoding =
           Image::MapStringDigitEncodingToShading(json_pairs.first);
-
-      pair<Shading, FloatMatrix> encoded_pair(shading_encoding,
-                                                        json_pairs.second);
-      shading_likelihood.insert(encoded_pair);
+      
+      shading_likelihood[shading_encoding] = json_pairs.second;
     }
 
     Classification class_struct = {class_likelihood, shading_likelihood};
-    model.classifications_.insert(
-        pair<char, Classification>(class_label, class_struct));
+    model.classifications_[class_label] = class_struct;
   }
   
   return input;
@@ -267,7 +262,7 @@ map<char, size_t> Model::GetLabelIndices() const {
   size_t label_index = 0;
 
   for (const auto& classification : classifications_) {
-    label_indices.insert(pair<char, size_t>(classification.first, label_index));
+    label_indices[classification.first] = label_index;
     label_index++;
   }
   

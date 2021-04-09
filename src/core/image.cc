@@ -16,6 +16,9 @@ const map<char, Shading> Image::kPixelShadings =
 const vector<Shading> Image::kDistinctShadingEncodings =
     {Shading::kWhite, Shading::kBlack, Shading::kGray};
 
+Image::Image(const std::vector<std::vector<Shading>>& pixels, char label) :
+    pixels_(pixels), label_(label) {}
+
 size_t Image::GetHeight() const {
   return pixels_.size();
 }
@@ -35,9 +38,6 @@ Shading Image::MapStringDigitEncodingToShading(const std::string& to_map) {
   throw std::invalid_argument("The shading encoding string provided is invalid.");
 }
 
-Image::Image(std::vector<std::vector<Shading>> pixels, char label) :
-  pixels_(std::move(pixels)), label_(label) {}
-
 char Image::GetLabel() const { 
   return label_; 
 }
@@ -46,8 +46,21 @@ Shading Image::GetPixel(size_t row, size_t column) const {
   return pixels_.at(row).at(column);
 }
 
-vector<vector<Shading>> Image::GetPixelGrid() const { 
-  return pixels_; 
+std::istream& operator>>(std::istream& input, Image& image) {
+  string next_line;
+  getline(input, next_line);
+  
+  image.label_ = next_line.at(0);
+  
+  while (getline(input, next_line)) {
+    vector<Shading> pixel_row;
+    for (char pixel : next_line) {
+      pixel_row.push_back(Image::kPixelShadings.at(pixel));
+    }
+    image.pixels_.push_back(pixel_row);
+  }
+  
+  return input;
 }
 
 } // namespace naivebayes

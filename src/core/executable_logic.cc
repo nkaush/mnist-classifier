@@ -29,6 +29,7 @@ const string ExecutableLogic::kSavingConfusionMatrixMessage =
 const string ExecutableLogic::kConfusionMatrixColumnLabel = "Predicted";
 
 const string ExecutableLogic::kFinishedMessage = "done.";
+const string ExecutableLogic::kFailedMessage = "done.";
 
 ExecutableLogic::ExecutableLogic(size_t laplace_factor) 
     : model_(Model(laplace_factor)) {}
@@ -67,33 +68,39 @@ int ExecutableLogic::Execute(const string& train_flag, const string& load_flag,
 void ExecutableLogic::SaveModel(const string& file_path) const {
   std::ofstream output_file(file_path);
 
+  std::cout << kSavingModelMessage;
   if (output_file.is_open()) {
-    std::cout << kSavingModelMessage;
     output_file << model_;  // Serialize the model and save to the given file
     std::cout << kFinishedMessage << std::endl;
+  } else {
+    std::cout << kFailedMessage << std::endl;
   }
 }
 
 void ExecutableLogic::LoadModel(const string& model_path) {
   std::ifstream model_file(model_path);
 
+  std::cout << kLoadingModelMessage;
   if (model_file.is_open()) {
-    std::cout << kLoadingModelMessage;
     model_file >> model_;  // Deserialize the model and load it in the stack
     std::cout << kFinishedMessage << std::endl;
+  } else {
+    std::cout << kFailedMessage << std::endl;
   }
 }
 
 void ExecutableLogic::TrainModel(const string& dataset_path) {
   std::ifstream input_file(dataset_path);
 
+  std::cout << kTrainingModelMessage;
   if (input_file.is_open()) {
     Dataset dataset = Dataset();
     input_file >> dataset;  // Add images from the training file to the dataset
-    std::cout << kTrainingModelMessage;
-
+    
     model_.Train(dataset);
     std::cout << kFinishedMessage << std::endl;
+  } else {
+    std::cout << kFailedMessage << std::endl;
   }
 }
 
@@ -102,11 +109,12 @@ void ExecutableLogic::TestModel(const string& dataset_path,
                                 const string& confusion_csv_path) const {
   std::ifstream input_file(dataset_path);
 
+  std::cout << kTestingModelMessage << std::endl;
   if (input_file.is_open()) {
     Dataset dataset = Dataset();
     input_file >> dataset; // Add images from the training file to the dataset
-    std::cout << kTestingModelMessage << std::endl;
     
+    // Test the model via the method defined with command line flags
     vector<vector<size_t>> confusion_matrix;
     if (is_test_multi_threaded) {
       confusion_matrix = model_.MultiThreadedTest(dataset);
@@ -114,13 +122,15 @@ void ExecutableLogic::TestModel(const string& dataset_path,
       confusion_matrix = model_.Test(dataset);
     }
     
+    // Save the confusion matrix, if specified
     if (!confusion_csv_path.empty()) {
       SaveConfusionMatrix(confusion_csv_path, confusion_matrix);
     }
     
     float score = Model::CalculateAccuracy(confusion_matrix);
-
     std::cout << kModelAccuracyMessage << score << std::endl;
+  } else {
+    std::cout << kFailedMessage << std::endl;
   }
 }
 
@@ -158,10 +168,12 @@ void ExecutableLogic::SaveConfusionMatrix(
       }
       output_file << std::endl;
     }
+    
+    output_file.close();
+    std::cout << kFinishedMessage << std::endl;
+  } else {
+    std::cout << kFailedMessage << std::endl;
   }
-  
-  output_file.close();
-  std::cout << kFinishedMessage << std::endl;
 }
 
 } // namespace naivebayes

@@ -49,7 +49,12 @@ TEST_CASE("Test Reading Mock Dataset") {
     
     vector<Image> zero_class_images = dataset.GetImageGroup('0');
     for (size_t i = 0; i < zero_class_images.size(); i++) {
-      REQUIRE(zero_class_images.at(i).GetPixelGrid() == images.at(i));
+      for (size_t row = 0; row < zero_class_images.at(i).GetHeight(); row++) {
+        for (size_t col = 0; col < zero_class_images.at(i).GetWidth(); col++) {
+          REQUIRE(zero_class_images.at(i).GetPixel(row, col) == 
+                  images.at(i).at(row).at(col));
+        }
+      }
     }
   }
 
@@ -67,7 +72,12 @@ TEST_CASE("Test Reading Mock Dataset") {
 
     vector<Image> one_class_images = dataset.GetImageGroup('1');
     for (size_t i = 0; i < one_class_images.size(); i++) {
-      REQUIRE(one_class_images.at(i).GetPixelGrid() == images.at(i));
+      for (size_t row = 0; row < one_class_images.at(i).GetHeight(); row++) {
+        for (size_t col = 0; col < one_class_images.at(i).GetWidth(); col++) {
+          REQUIRE(one_class_images.at(i).GetPixel(row, col) ==
+                  images.at(i).at(row).at(col));
+        }
+      }
     }
   }
 }
@@ -85,9 +95,6 @@ TEST_CASE("Test Single Image Entry") {
   input >> dataset;
   
   SECTION("Test dataset correctly encodes image") {
-    vector<vector<Shading>> pixel_grid =
-        dataset.GetImageGroup('0').at(0).GetPixelGrid();
-
     Shading b = Shading::kBlack;
     Shading w = Shading::kWhite;
 
@@ -95,7 +102,13 @@ TEST_CASE("Test Single Image Entry") {
                                             {b, w, b, w},
                                             {b, b, b, w},
                                             {w, w, w, w}};
-    REQUIRE(pixel_grid == correct_grid);
+    
+    const Image& to_check = dataset.GetImageGroup('0').at(0);
+    for (size_t row = 0; row < correct_grid.size(); row++) {
+      for (size_t col = 0; col < correct_grid.at(row).size(); col++) {
+        REQUIRE(correct_grid.at(row).at(col) == to_check.GetPixel(row, col));
+      }
+    }
   }
   
   SECTION("Test dataset accurately records size") {
@@ -126,34 +139,37 @@ TEST_CASE("Test Loading Images of Different Size - 5x5") {
 
   input >> dataset;
 
+  Shading b = Shading::kBlack;
+  Shading w = Shading::kWhite;
+  
   SECTION("Test dataset correctly encodes images with label '0'") {
-    vector<vector<Shading>> pixel_grid =
-        dataset.GetImageGroup('0').at(0).GetPixelGrid();
-
-    Shading b = Shading::kBlack;
-    Shading w = Shading::kWhite;
-
     vector<vector<Shading>> correct_grid = {{b, b, b, w, w},
                                             {b, w, b, w, w},
                                             {b, b, b, w, w},
                                             {w, w, w, w, w},
                                             {w, w, w, w, w}};
-    REQUIRE(pixel_grid == correct_grid);
+    
+    const Image& to_check = dataset.GetImageGroup('0').at(0);
+    for (size_t row = 0; row < correct_grid.size(); row++) {
+      for (size_t col = 0; col < correct_grid.at(row).size(); col++) {
+        REQUIRE(correct_grid.at(row).at(col) == to_check.GetPixel(row, col));
+      }
+    }
   }
 
   SECTION("Test dataset correctly encodes images with label '1'") {
-    vector<vector<Shading>> pixel_grid =
-        dataset.GetImageGroup('1').at(0).GetPixelGrid();
-
-    Shading b = Shading::kBlack;
-    Shading w = Shading::kWhite;
-
     vector<vector<Shading>> correct_grid = {{w, b, b, w, w},
                                             {w, w, b, w, w},
                                             {w, w, b, w, w},
                                             {w, w, b, w, w},
                                             {w, b, b, b, w}};
-    REQUIRE(pixel_grid == correct_grid);
+    
+    const Image& to_check = dataset.GetImageGroup('1').at(0);
+    for (size_t row = 0; row < correct_grid.size(); row++) {
+      for (size_t col = 0; col < correct_grid.at(row).size(); col++) {
+        REQUIRE(correct_grid.at(row).at(col) == to_check.GetPixel(row, col));
+      }
+    }
   }
 
   SECTION("Test dataset accurately records size") {
@@ -186,36 +202,39 @@ TEST_CASE("Test Loading Images of Different Size - 6x6") {
 
   input >> dataset;
 
+  Shading b = Shading::kBlack;
+  Shading w = Shading::kWhite;
+
   SECTION("Test dataset correctly encodes images with label '0'") {
-    vector<vector<Shading>> pixel_grid =
-        dataset.GetImageGroup('0').at(0).GetPixelGrid();
-
-    Shading b = Shading::kBlack;
-    Shading w = Shading::kWhite;
-
     vector<vector<Shading>> correct_grid = {{w, w, w, w, w, w},
                                             {w, b, b, b, b, w},
                                             {w, b, w, w, b, w},
                                             {w, b, w, w, b, w},
                                             {w, b, b, b, b, w},
                                             {w, w, w, w, w, w}};
-    REQUIRE(pixel_grid == correct_grid);
+    
+    const Image& to_check = dataset.GetImageGroup('0').at(0);
+    for (size_t row = 0; row < correct_grid.size(); row++) {
+      for (size_t col = 0; col < correct_grid.at(row).size(); col++) {
+        REQUIRE(correct_grid.at(row).at(col) == to_check.GetPixel(row, col));
+      }
+    }
   }
 
   SECTION("Test dataset correctly encodes images with label '1'") {
-    vector<vector<Shading>> pixel_grid =
-        dataset.GetImageGroup('1').at(0).GetPixelGrid();
-
-    Shading b = Shading::kBlack;
-    Shading w = Shading::kWhite;
-
     vector<vector<Shading>> correct_grid = {{w, w, w, w, w, w},
                                             {w, w, b, b, w, w},
                                             {w, w, w, b, w, w},
                                             {w, w, w, b, w, w},
                                             {w, w, b, b, b, w},
                                             {w, w, w, w, w, w}};
-    REQUIRE(pixel_grid == correct_grid);
+    
+    const Image& to_check = dataset.GetImageGroup('1').at(0);
+    for (size_t row = 0; row < correct_grid.size(); row++) {
+      for (size_t col = 0; col < correct_grid.at(row).size(); col++) {
+        REQUIRE(correct_grid.at(row).at(col) == to_check.GetPixel(row, col));
+      }
+    }
   }
 
   SECTION("Test dataset accurately records size") {

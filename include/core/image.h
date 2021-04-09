@@ -5,6 +5,7 @@
 #ifndef NAIVE_BAYES_IMAGE_H
 #define NAIVE_BAYES_IMAGE_H
 
+#include <iostream>
 #include <vector>
 #include <string>
 #include <map>
@@ -25,10 +26,6 @@ enum class Shading{
  * of the image contents and has functionality to describe the image shape. 
  */
 class Image {
-  private:
-    std::vector<std::vector<Shading>> pixels_;
-    
-    char label_;
   public:
     // Stores all of the shading encodings since C++ does not support reflection
     static const std::vector<Shading> kDistinctShadingEncodings;
@@ -43,7 +40,9 @@ class Image {
      * @param pixels - a 2D-vector of the pixels to represent this image with
      * @param label - a char that indicates the label this image represents
      */
-    Image(std::vector<std::vector<Shading>> pixels, char label);
+    Image(const std::vector<std::vector<Shading>>& pixels, char label);
+
+    friend std::istream &operator>>(std::istream &input, Image& image);
   
     /**
      * Getter for the height of the image (not making assumptions about squares)
@@ -70,12 +69,6 @@ class Image {
      * @return a Shading enum encoding of the requested pixel
      */
     Shading GetPixel(size_t row, size_t column) const;
-    
-    /**
-     * Getter for the pixel grid used for testing.
-     * @return a 2D-vector of the pixels in this image
-     */
-    std::vector<std::vector<Shading>> GetPixelGrid() const;
   
     /**
      * Maps a digit encoding of a Shading enum to the Shading enum itself. This
@@ -86,6 +79,10 @@ class Image {
      * @throws std::invalid_argument if the string does not map to any enum
      */
     static Shading MapStringDigitEncodingToShading(const std::string& to_map);
+  private:
+    std::vector<std::vector<Shading>> pixels_;
+    
+    char label_;
 };
 
 }
