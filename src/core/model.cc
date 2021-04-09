@@ -170,16 +170,18 @@ std::istream& operator>>(std::istream& input, Model& model) {
   json serialized_model;
   input >> serialized_model;
   
+  // Go through each classification json object to deserialize them
   for (const json& classification : serialized_model) {
+    // Find the serialized class label and class likelihood
     string class_string = classification[Model::kJsonSchemaLabelKey];
     char class_label = class_string.at(0);
-    
     float class_likelihood = classification[Model::kJsonSchemaClassKey];
 
     map<string, FloatMatrix> parsed_json_object = 
         classification[Model::kJsonSchemaShadingKey];
-    map<Shading, FloatMatrix> shading_likelihood;
     
+    map<Shading, FloatMatrix> shading_likelihood;
+    // Go through each 2D-array containing likelihoods for each Shading type
     for (const auto& json_pairs : parsed_json_object) {
       Shading shading_encoding =
           Image::MapStringDigitEncodingToShading(json_pairs.first);
@@ -274,17 +276,23 @@ ThreadGroup Model::CreateTestThreads(
   ThreadGroup thread_group;
   // Adapted from https://stackoverflow.com/a/57134334
   size_t thread_index = 0;
+  // Go through each classification group and create AT LEAST 1 thread for each
   for (char label : dataset.GetDistinctLabels()) {
     const vector<Image>& images = dataset.GetImageGroup(label);
+    // Account for truncating by adding 1 to ensure extra groups are not created
+    size_t batch_size = (images.size() / kThreadsPerGroup) + 1; 
 
     size_t current_group_index = 0;
+    // Split vector of images into groups of size batch_size
     while (current_group_index < images.size()) {
+      // Create 2 iterators spread `batch_size` indices apart
       auto begin_iterator = images.begin() + current_group_index;
-      auto end_iterator = images.begin() + current_group_index + kImagesPerThread;
+      current_group_index += batch_size;
+      auto end_iterator = images.begin() + current_group_index;
       if (end_iterator > images.end()) {
         end_iterator = images.end();
       }
-      
+      // Create a thread for each group
       vector<Image> sub_group(begin_iterator, end_iterator);
       promise<LongMatrix> thread_result;
       future<LongMatrix> completable_future = thread_result.get_future();
@@ -293,11 +301,8 @@ ThreadGroup Model::CreateTestThreads(
       thread next_thread(&Model::TestImageGroup, std::ref(*this),
                          std::move(thread_result), sub_group, 
                          label_indices, thread_index);
-
       thread_group.emplace_back(move(next_thread), move(completable_future));
       thread_index++;
-      
-      current_group_index += kImagesPerThread;
     }
   }
 

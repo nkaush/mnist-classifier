@@ -29,7 +29,7 @@ const string ExecutableLogic::kSavingConfusionMatrixMessage =
 const string ExecutableLogic::kConfusionMatrixColumnLabel = "Predicted";
 
 const string ExecutableLogic::kFinishedMessage = "done.";
-const string ExecutableLogic::kFailedMessage = "done.";
+const string ExecutableLogic::kFailedMessage = "failed.";
 
 ExecutableLogic::ExecutableLogic(size_t laplace_factor) 
     : model_(Model(laplace_factor)) {}
