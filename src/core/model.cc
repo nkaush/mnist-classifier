@@ -27,6 +27,9 @@ const string Model::kJsonSchemaLabelKey = "label";
 const string Model::kJsonSchemaClassKey = "class_likelihood";
 const string Model::kJsonSchemaShadingKey = "shading_likelihoods";
 
+const string Model::kModelTestingIndexFeedback = "Thread: ";
+const string Model::kModelTestingThreadFeedback = "Index: ";
+
 Model::Model(size_t laplace_smoothing) 
     : laplace_smoothing_(laplace_smoothing) {}
 
@@ -41,6 +44,10 @@ float Model::GetFeatureLikelihood(char class_label, Shading shading,
       specified_class.shading_likelihoods_.at(shading);
 
   return shading_likelihood.at(row).at(column);
+}
+
+map<char, size_t> Model::GetLabelIndices() const {
+  return label_indices_;
 }
 
 void Model::Train(const Dataset& dataset) {
@@ -64,6 +71,21 @@ void Model::Train(const Dataset& dataset) {
     Classification classification = {class_likelihood, feature_likelihoods};
     classifications_[label] = classification;
   }
+  
+  label_indices_ = AssignLabelIndices();
+}
+
+map<char, size_t> Model::AssignLabelIndices() const {
+  // Assign each char class label an index in our confusion matrix
+  map<char, size_t> label_indices;
+  size_t label_index = 0;
+
+  for (const auto& classification : classifications_) {
+    label_indices[classification.first] = label_index;
+    label_index++;
+  }
+
+  return label_indices;
 }
 
 map<Shading, FloatMatrix> Model::CalculateFeatureLikelihoods(
@@ -74,7 +96,7 @@ map<Shading, FloatMatrix> Model::CalculateFeatureLikelihoods(
   // Initialize the empty map so we can fill it by indexing as we iterate
   map<Shading, FloatMatrix> feature_likelihoods = 
       InitializeEmptyFeatureMap(row_count, column_count);
-
+  
   float group_size_smooth_factor =
       laplace_smoothing_ * static_cast<float>(label_count);
   float smoothed_group_count = 
@@ -87,7 +109,7 @@ map<Shading, FloatMatrix> Model::CalculateFeatureLikelihoods(
           CountPixelShadings(class_group, row, column);
 
       // Go through all Shading types and calculate likelihood for each
-      for (pair<const Shading, size_t> shading_count : pixel_shading_counts) {
+      for (const auto& shading_count : pixel_shading_counts) {
         float smoothed_pixel_shading_count =
             laplace_smoothing_ + static_cast<float>(shading_count.second);
 
@@ -107,7 +129,8 @@ map<Shading, FloatMatrix> Model::InitializeEmptyFeatureMap(
     size_t row_count, size_t column_count) {
   map<Shading, FloatMatrix> feature_likelihoods;
   
-  for (Shading shading : Image::kDistinctShadingEncodings) {
+  // Fill in the feature map so we explicitly say that there can be 0 images
+  for (const Shading& shading : Image::kDistinctShadingEncodings) {
     FloatMatrix empty_vector(row_count, vector<float>(column_count));
     feature_likelihoods[shading] = empty_vector;
   }
@@ -119,8 +142,9 @@ map<Shading, size_t> Model::CountPixelShadings(
     const vector<Image>& group, size_t row, size_t column) {
   // map has key shading_class and value image_count
   map<Shading, size_t> pixel_shading_counts;
+  
   // Initialize all image_counts to 0
-  for (Shading shading : Image::kDistinctShadingEncodings) {
+  for (const Shading& shading : Image::kDistinctShadingEncodings) {
     pixel_shading_counts[shading] = 0;
   }
 
@@ -157,8 +181,8 @@ std::ostream& operator<<(std::ostream& output, const Model& model) {
       
       shading_likelihoods[shading_key] = shading_likelihood.second;
     }
-    classification_object[Model::kJsonSchemaShadingKey] = shading_likelihoods;
     
+    classification_object[Model::kJsonSchemaShadingKey] = shading_likelihoods;
     serialized_model.push_back(classification_object);
   }
   
@@ -197,28 +221,31 @@ std::istream& operator>>(std::istream& input, Model& model) {
 }
 
 char Model::Classify(const Image& image) const {
-  vector<float> likelihoods;
-  vector<char> labels;
-
+  char most_likely_label = Image::kDefaultLabel;
+  // set to an arbitrary number, will be reset after 1st likelihood calculation
+  float max_likelihood = 0; 
+  
+  // Go through each class label to check the likelihood of being that label
   for (const auto& class_group : classifications_) {
     char label = class_group.first;
     float score = GetClassLikelihood(label);
-    labels.push_back(label);
 
+    // Go through each pixel to retrieve likelihoods of the shading of the pixel
     for (size_t row = 0; row < image.GetHeight(); row++) {
       for (size_t column = 0; column < image.GetWidth(); column++) {
         Shading shading = image.GetPixel(row, column);
         score += GetFeatureLikelihood(label, shading, row, column);
       }
     }
-    likelihoods.push_back(score);
+    
+    // Update the prediction if we hit the first class or have a higher score
+    if (score > max_likelihood || most_likely_label == Image::kDefaultLabel) {
+      max_likelihood = score;
+      most_likely_label = label;
+    }
   }
-
-  size_t idx_max_score = std::distance(likelihoods.begin(),
-                                       std::max_element(likelihoods.begin(),
-                                                        likelihoods.end()));
-
-  return labels.at(idx_max_score);
+  
+  return most_likely_label;
 }
 
 LongMatrix Model::Test(const Dataset& dataset) const {
@@ -228,12 +255,14 @@ LongMatrix Model::Test(const Dataset& dataset) const {
   LongMatrix confusion_matrix(label_indices.size(), matrix_row);
 
   size_t index = 0;
+  // Go through each subset of images in the dataset
   for (char label : dataset.GetDistinctLabels()) {
     const vector<Image>& images = dataset.GetImageGroup(label);
 
+    // Go through each image in the subset and try to predict its label
     for (const Image& image : images) {
       if (index % kLinearTestingFeedbackRate == 0) {
-        std::cout << "Index: " << index << std::endl;
+        std::cout << kModelTestingIndexFeedback << index << std::endl;
       }
       char predicted = Classify(image);
 
@@ -258,19 +287,6 @@ LongMatrix Model::MultiThreadedTest(const Dataset& dataset) const {
   return confusion_matrix;
 }
 
-map<char, size_t> Model::GetLabelIndices() const {
-  // Assign each char class label an index in our confusion matrix
-  map<char, size_t> label_indices;
-  size_t label_index = 0;
-
-  for (const auto& classification : classifications_) {
-    label_indices[classification.first] = label_index;
-    label_index++;
-  }
-  
-  return label_indices;
-}
-
 ThreadGroup Model::CreateTestThreads(
     const Dataset& dataset, const map<char, size_t>& label_indices) const {
   ThreadGroup thread_group;
@@ -285,7 +301,7 @@ ThreadGroup Model::CreateTestThreads(
     size_t current_group_index = 0;
     // Split vector of images into groups of size batch_size
     while (current_group_index < images.size()) {
-      // Create 2 iterators spread `batch_size` indices apart
+      // Get a sub-vector of the group of images with `batch_size` total images
       auto begin_iterator = images.begin() + current_group_index;
       current_group_index += batch_size;
       auto end_iterator = images.begin() + current_group_index;
@@ -312,14 +328,18 @@ ThreadGroup Model::CreateTestThreads(
 void Model::TestImageGroup(
     promise<LongMatrix> thread_result, const vector<Image>& image_group,
     const map<char, size_t>& label_indices, size_t thread_index) const {
+  // Initialize an empty confusion matrix we fill with results of this thread
   vector<size_t> matrix_row(label_indices.size(), 0);
   LongMatrix confusion_matrix(label_indices.size(), matrix_row);
 
   size_t index = 0;
   for (const Image& image : image_group) {
+    // Only print label index every `kThreadedTestingFeedbackRate` predictions
     if (index % kThreadedTestingFeedbackRate == 0) {
-      std::cout << "Thread " << thread_index << " Index: " << index << std::endl;
+      std::cout << kModelTestingThreadFeedback << thread_index << " ";
+      std::cout << kModelTestingIndexFeedback << index << std::endl;
     }
+    
     char predicted_label = Classify(image);
 
     // Find the indices assigned to both the predicted and actual labels
@@ -365,9 +385,11 @@ float Model::CalculateAccuracy(const LongMatrix& confusion_matrix) {
   size_t correct = 0;
   size_t prediction_count = 0;
   
+  // Go through the confusion matrix to find the number of correct predictions
   for (size_t row = 0; row < confusion_matrix.size(); row++) {
     // The diagonal of the matrix is when actual label == predicted label
     correct += confusion_matrix.at(row).at(row);
+    
     for (size_t value : confusion_matrix.at(row)) {
       prediction_count += value;
     }

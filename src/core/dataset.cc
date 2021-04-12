@@ -73,7 +73,7 @@ std::istream& operator>>(istream& input, Dataset& dataset) {
     
     Image image;
     image_lines >> image;
-
+    
     dataset.class_groups_[label].push_back(image);
     dataset.size_++;
   }
@@ -97,7 +97,7 @@ Image Dataset::ParseFirstImage(istream& input) const {
   
   string first_line;
   getline(input, first_line);
-  image_lines << first_line + kFileLineDelimiter;
+  image_lines << first_line << kFileLineDelimiter;
 
   string line;
   getline(input, line);

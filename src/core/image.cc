@@ -16,6 +16,8 @@ const map<char, Shading> Image::kPixelShadings =
 const vector<Shading> Image::kDistinctShadingEncodings =
     {Shading::kWhite, Shading::kBlack, Shading::kGray};
 
+Image::Image() : pixels_(), label_('\0') {}
+
 Image::Image(const std::vector<std::vector<Shading>>& pixels, char label) :
     pixels_(pixels), label_(label) {}
 

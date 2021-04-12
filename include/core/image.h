@@ -15,7 +15,7 @@ namespace naivebayes {
 /**
  * Contains enum encodings of all possible Shading types the model supports.
  */
-enum class Shading{
+enum class Shading {
   kWhite = 0,
   kBlack = 1,
   kGray = 2
@@ -33,7 +33,9 @@ class Image {
     // Stores rules about how to map characters in a file to Shading encodings
     static const std::map<char, Shading> kPixelShadings;
     
-    Image() = default;
+    static constexpr char kDefaultLabel = '\0';
+    
+    Image();
   
     /**
      * Instantiates an Image with the provided pixels and label.
@@ -42,7 +44,7 @@ class Image {
      */
     Image(const std::vector<std::vector<Shading>>& pixels, char label);
 
-    friend std::istream &operator>>(std::istream &input, Image& image);
+    friend std::istream &operator>>(std::istream& input, Image& image);
   
     /**
      * Getter for the height of the image (not making assumptions about squares)

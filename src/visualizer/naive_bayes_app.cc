@@ -58,7 +58,7 @@ void NaiveBayesApp::keyDown(ci::app::KeyEvent event) {
     case ci::app::KeyEvent::KEY_RETURN:
       // Make a new Image with the pixels without specifying what label it is
       current_prediction_ = model_.Classify(Image(sketchpad_.GetPixels(), 
-                                                  kDefaultImageLabel));
+                                                  Image::kDefaultLabel));
       break;
 
     case ci::app::KeyEvent::KEY_BACKSPACE:

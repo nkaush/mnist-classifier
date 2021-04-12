@@ -34,8 +34,6 @@ class NaiveBayesApp : public ci::app::App {
   static constexpr double kMargin = 100;
   static constexpr size_t kImageDimension = 28;
   
-  static constexpr char kDefaultImageLabel = '\0';
-  
   static constexpr uint8_t kBackgroundRedIntensity = 255;
   static constexpr uint8_t kBackgroundGreenIntensity = 246;
   static constexpr uint8_t kBackgroundBlueIntensity = 148;

@@ -89,6 +89,10 @@ class Model {
     float GetFeatureLikelihood(char class_label, Shading shading, 
                                size_t row, size_t column) const;
     
+    /**
+     * Getter for a map of char labels and their indices in the model.
+     * @return a map from each char label to its index in the confusion matrix
+     */
     std::map<char, size_t> GetLabelIndices() const;
     
     /**
@@ -121,6 +125,8 @@ class Model {
     // Stores the likelihood of each class and all features for each class
     std::map<char, Classification> classifications_;
     
+    std::map<char, size_t> label_indices_;
+    
     float laplace_smoothing_;
     
     // Determines the max number of images to analyze in each thread
@@ -137,6 +143,9 @@ class Model {
     static const std::string kJsonSchemaLabelKey; 
     static const std::string kJsonSchemaClassKey; 
     static const std::string kJsonSchemaShadingKey; 
+    
+    static const std::string kModelTestingIndexFeedback;
+    static const std::string kModelTestingThreadFeedback;
     
     /**
      * Calculates the conditional likelihood of a Shading appearing in an image
@@ -213,6 +222,13 @@ class Model {
         std::vector<std::pair<std::thread,
             std::future<std::vector<std::vector<size_t>>>>>& thread_group,
         const std::map<char, size_t>& label_indices) const;
+
+    /**
+     * Enumerates each char class label and maps each char to a size_t that 
+     * indicates the char's corresponding label in the confusion matrix.
+     * @return a map from each char label to its index in the confusion matrix
+     */
+    std::map<char, size_t> AssignLabelIndices() const;
 };
 
 } // namespace naivebayes

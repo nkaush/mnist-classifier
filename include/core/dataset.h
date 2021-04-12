@@ -50,7 +50,7 @@ class Dataset {
      * @throws std::invalid_argument if any image is missing a label or if any
      * image is not the same uniform size as all other images
      */
-    friend std::istream &operator>>(std::istream &input, Dataset& dataset);
+    friend std::istream &operator>>(std::istream& input, Dataset& dataset);
   
   private:
     // Stores size of dataset so we don't have to compute size from a map

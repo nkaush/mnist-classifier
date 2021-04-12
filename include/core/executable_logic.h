@@ -65,7 +65,7 @@ class ExecutableLogic {
     static const std::string kFailedMessage;
 
 
-  /**
+    /**
      * Save the model to the specified file path. Creates a file, if the
      * file does not exist, otherwise, overwrites the file.
      * @param file_path - a string indicating the file to save the model to
