@@ -177,10 +177,6 @@ TEST_CASE("Test Likelihood Score Calculation and Image Classification on 5x5") {
   }
 }
 
-TEST_CASE("Test Model Accuracy") {
-  
-}
-
 TEST_CASE("Test Model Testing on 4x4 Images") {
   Model model = Model();
   Dataset train_dataset = Dataset();

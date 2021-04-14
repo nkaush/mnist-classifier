@@ -27,6 +27,8 @@ const string ExecutableLogic::kSavingModelMessage = "Saving model...";
 const string ExecutableLogic::kSavingConfusionMatrixMessage = 
     "Saving confusion matrix...";
 const string ExecutableLogic::kConfusionMatrixColumnLabel = "Predicted";
+const string ExecutableLogic::kConfusionMatrixRowLabel = "Actual";
+const string ExecutableLogic::kConfusionMatrixLabelIndicator = "Label";
 
 const string ExecutableLogic::kFinishedMessage = "done.";
 const string ExecutableLogic::kFailedMessage = "failed.";
@@ -143,39 +145,53 @@ void ExecutableLogic::SaveConfusionMatrix(
 
   std::cout << kSavingConfusionMatrixMessage;
   if (output_file.is_open()) {
-    map<char, size_t> label_indices = model_.GetLabelIndices();
-    
     size_t middle_index = matrix.size() / 2; // middle is half the size...
-    // We should not add a comma AFTER the last element, so subtract 1
-    size_t count_after_middle = matrix.size() - middle_index - 1;
+    size_t count_after_middle = matrix.size() - middle_index;
     
     // Add one extra comma to account for the offset row labels
     output_file << string(middle_index + 1, kCsvElementDelimiter);
     output_file << kConfusionMatrixColumnLabel;
     output_file << string(count_after_middle, kCsvElementDelimiter) << std::endl;
+    output_file << kCsvElementDelimiter << kConfusionMatrixLabelIndicator;
     
-    // Insert corresponding label into stored index and add to csv column labels
-    vector<char> row_labels = vector<char>(label_indices.size());
-    for (const auto& label_pairs : label_indices) {
-      char label = label_pairs.first;
-      row_labels.at(label_pairs.second) = label;
-      output_file << kCsvElementDelimiter << label;
-    }
-    output_file << std::endl;
-    
-    // Write each prediction count in each row to the file
-    for (size_t row_idx = 0; row_idx < matrix.size(); row_idx++) {
-      output_file << row_labels.at(row_idx);
-      for (size_t count : matrix.at(row_idx)) {
-        output_file << kCsvElementDelimiter << count;
-      }
-      output_file << std::endl;
-    }
+    // Subtract 1 to account for buffer of the column label
+    WriteConfusionMatrixCounts(output_file, matrix, middle_index - 1);
     
     output_file.close();
     std::cout << kFinishedMessage << std::endl;
   } else {
     std::cout << kFailedMessage << std::endl;
+  }
+}
+
+void ExecutableLogic::WriteConfusionMatrixCounts(
+    std::ofstream& output_file, const vector<vector<size_t>>& matrix, 
+    size_t middle_index) const {
+  // Insert corresponding label into stored index and add to csv column labels
+  map<char, size_t> label_indices = model_.GetLabelIndices();
+  vector<char> row_labels = vector<char>(label_indices.size());
+  
+  for (const auto& label_pairs : label_indices) {
+    char label = label_pairs.first;
+    row_labels.at(label_pairs.second) = label;
+    output_file << kCsvElementDelimiter << label;
+  }
+  output_file << std::endl;
+  
+  // Write each prediction count in each row to the file
+  for (size_t row_idx = 0; row_idx < matrix.size(); row_idx++) {
+    if (row_idx == middle_index) { // when at the middle, print the row label
+      output_file << kConfusionMatrixRowLabel;
+    }
+
+    output_file << kCsvElementDelimiter << row_labels.at(row_idx);
+
+    // Write each prediction count
+    for (size_t count : matrix.at(row_idx)) {
+      output_file << kCsvElementDelimiter << count;
+    }
+
+    output_file << std::endl;
   }
 }
 

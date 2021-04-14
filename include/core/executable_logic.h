@@ -61,6 +61,8 @@ class ExecutableLogic {
     static const std::string kSavingModelMessage;
     static const std::string kSavingConfusionMatrixMessage;
     static const std::string kConfusionMatrixColumnLabel;
+    static const std::string kConfusionMatrixRowLabel;
+    static const std::string kConfusionMatrixLabelIndicator;
     
     static const std::string kFinishedMessage;
     static const std::string kFailedMessage;
@@ -107,9 +109,20 @@ class ExecutableLogic {
      * @param save_path - a string indicating the file path to save to
      * @param matrix - a 2D-vector representing the confusion matrix
      */
-    void SaveConfusionMatrix(const std::string& save_path, 
-                             const std::vector<std::vector<size_t>>& matrix) 
-        const;
+    void SaveConfusionMatrix(
+        const std::string& save_path, 
+        const std::vector<std::vector<size_t>>& matrix) const;
+    
+    /**
+     * Helper method to write the counts in the matrix to the given stream.
+     * @param output_file - the stream to write to
+     * @param matrix - the confusion matrix to write
+     * @param middle_index - the index of the row to write indicator labels to
+     */
+    void WriteConfusionMatrixCounts(
+        std::ofstream& output_file, 
+        const std::vector<std::vector<size_t>>& matrix,
+        size_t middle_index) const;
 };
 
 }
