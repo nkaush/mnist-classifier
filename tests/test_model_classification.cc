@@ -194,7 +194,7 @@ TEST_CASE("Test Model Testing on 4x4 Images") {
   ifstream test_input(test_path);
   test_input >> testing_dataset;
   
-  SECTION("Test linear test returns correct confusion matrix on 4x4") {
+  SECTION("Test linear test returns correct confusion matrix") {
     LongMatrix expected {{2, 0},
                          {0, 2}};
     LongMatrix actual = model.Test(testing_dataset, false);
@@ -203,7 +203,7 @@ TEST_CASE("Test Model Testing on 4x4 Images") {
     REQUIRE(Model::CalculateAccuracy(actual) == Approx(1));
   }
 
-  SECTION("Test multi-threaded test returns correct confusion matrix on 4x4") {
+  SECTION("Test multi-threaded test returns correct confusion matrix") {
     LongMatrix expected {{2, 0},
                          {0, 2}};
     LongMatrix actual = model.Test(testing_dataset, false);
@@ -230,7 +230,7 @@ TEST_CASE("Test Model Testing on 5x5 Images") {
   ifstream test_input(test_path);
   test_input >> testing_dataset;
   
-  SECTION("Test linear test returns correct confusion matrix on 4x4") {
+  SECTION("Test linear test returns correct confusion matrix") {
     LongMatrix expected {{2, 1},
                          {1, 2}};
     LongMatrix actual = model.Test(testing_dataset, false);
@@ -239,7 +239,7 @@ TEST_CASE("Test Model Testing on 5x5 Images") {
     REQUIRE(Model::CalculateAccuracy(actual) == Approx(0.66667));
   }
 
-  SECTION("Test multi-threaded test returns correct confusion matrix on 4x4") {
+  SECTION("Test multi-threaded test returns correct confusion matrix") {
     LongMatrix expected {{2, 1},
                          {1, 2}};
     LongMatrix actual = model.Test(testing_dataset, false);
