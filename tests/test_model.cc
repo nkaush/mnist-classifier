@@ -12,10 +12,12 @@
 using naivebayes::Dataset;
 using naivebayes::Shading;
 using naivebayes::Model;
+using naivebayes::Image;
 using std::stringstream;
 using nlohmann::json;
 using std::ifstream;
 using std::vector;
+using std::string;
 
 TEST_CASE("Test Class Occurrence Likelihoods") {
   Model model = Model();
@@ -23,7 +25,7 @@ TEST_CASE("Test Class Occurrence Likelihoods") {
 
   // Need long verbose filepath since Cmake/Cinder can't locate local file path
   std::string file_path = "/Users/neilkaushikkar/Cinder/my-projects/"
-      "naive-bayes-nkaush/data/testing_dataset.txt";
+      "naive-bayes-nkaush/data/testing_train_dataset_4x4.txt";
   ifstream input(file_path);
 
   input >> dataset;
@@ -44,7 +46,7 @@ TEST_CASE("Test Conditional Likelihoods") {
 
   // Need long verbose filepath since Cmake/Cinder can't locate local file path
   std::string file_path = "/Users/neilkaushikkar/Cinder/my-projects/"
-      "naive-bayes-nkaush/data/testing_dataset.txt";
+      "naive-bayes-nkaush/data/testing_train_dataset_4x4.txt";
   ifstream input(file_path);
   
   input >> dataset;
@@ -155,7 +157,7 @@ TEST_CASE("Test Model Serialization") {
     
     // Create the actual serialized model
     std::string dataset_path = "/Users/neilkaushikkar/Cinder/my-projects/"
-        "naive-bayes-nkaush/data/testing_dataset.txt";
+        "naive-bayes-nkaush/data/testing_train_dataset_4x4.txt";
     ifstream dataset_input(dataset_path);
 
     dataset_input >> dataset;

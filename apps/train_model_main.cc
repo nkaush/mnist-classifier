@@ -12,6 +12,7 @@ DEFINE_uint32(smoothing, naivebayes::Model::kDefaultLaplaceSmoothingFactor,
               "The Laplace smoothing factor to use in calculating likelihoods.");
 DEFINE_bool(multithread, false, "Whether to multi-thread the tests when "
             "validating the model");
+DEFINE_bool(verbose, false, "Whether to print the current index when testing.");
 
 using naivebayes::ExecutableLogic;
 
@@ -19,12 +20,12 @@ int main(int argc, char** argv) {
   gflags::ParseCommandLineFlags(&argc, &argv, true);
   
   // Prevent a user from setting the unsigned smoothing factor to 0
-  if (FLAGS_smoothing < naivebayes::Model::kDefaultLaplaceSmoothingFactor) {
+  if (FLAGS_smoothing <= 0) {
     FLAGS_smoothing = naivebayes::Model::kDefaultLaplaceSmoothingFactor;
   }
   
   ExecutableLogic logic = ExecutableLogic(FLAGS_smoothing);
   
   return logic.Execute(FLAGS_train, FLAGS_load, FLAGS_save, FLAGS_test, 
-                       FLAGS_confusion, FLAGS_multithread);
+                       FLAGS_confusion, FLAGS_multithread, FLAGS_verbose);
 }

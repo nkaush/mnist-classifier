@@ -33,6 +33,7 @@ class Image {
     // Stores rules about how to map characters in a file to Shading encodings
     static const std::map<char, Shading> kPixelShadings;
     
+    // The default label to use for an Image when one is not specified
     static constexpr char kDefaultLabel = '\0';
     
     Image();
@@ -43,8 +44,6 @@ class Image {
      * @param label - a char that indicates the label this image represents
      */
     Image(const std::vector<std::vector<Shading>>& pixels, char label);
-
-    friend std::istream &operator>>(std::istream& input, Image& image);
   
     /**
      * Getter for the height of the image (not making assumptions about squares)
@@ -81,9 +80,20 @@ class Image {
      * @throws std::invalid_argument if the string does not map to any enum
      */
     static Shading MapStringDigitEncodingToShading(const std::string& to_map);
+
+    /**
+     * Overloaded extraction operator creates an Image from a stream of chars
+     * by mapping each char to a Shading enum encoding and assigning a label.
+     * @param input - an istream containing a label and lines of chars
+     * @param image - the Image object to populate with data from the stream
+     * @return the istream after the image data has been extracted
+     */
+    friend std::istream &operator>>(std::istream& input, Image& image);
   private:
+    // Stores the encoding of the image in a 2D vector of Shading enum encodings
     std::vector<std::vector<Shading>> pixels_;
     
+    // Stores the character label this image is meant to represent
     char label_;
 };
 

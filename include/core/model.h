@@ -49,19 +49,24 @@ class Model {
      * and generating a confusion matrix displaying the count of predicted 
      * labels with respect to the count of actual labels.
      * @param dataset - a Dataset object containing Images & their actual labels
+     * @param is_printing_verbose - indicates whether to notify the index of the
+     *                              current test image every increment
      * @return 2D-vector representing a confusion matrix generated from testing
      */
-    std::vector<std::vector<size_t>> Test(const Dataset& dataset) const;
+    std::vector<std::vector<size_t>> Test(const Dataset& dataset, 
+                                          bool is_printing_verbose) const;
 
     /**
      * Tests the model by classifying each image in the dataset concurrently by 
      * spawning multiple threads and generating a confusion matrix displaying 
      * the count of predicted labels with respect to the count of actual labels.
      * @param dataset - a Dataset object containing Images & their actual labels
+     * @param is_printing_verbose - indicates whether to notify the index of the
+     *                              current test image every increment
      * @return 2D-vector representing a confusion matrix generated from testing
      */
     std::vector<std::vector<size_t>> MultiThreadedTest(
-        const Dataset& dataset) const;
+        const Dataset& dataset, bool is_printing_verbose) const;
     
     /**
      * Classify the given Image by comparing its features to the model.
@@ -69,6 +74,8 @@ class Model {
      * @return a char indicating the predicted label of the Image
      */
     char Classify(const Image& image) const;
+    
+    float CalculateLikelihoodScore(char label, const Image& image) const;
     
     /**
      * Getter for the likelihood of the occurrence of a class.
@@ -93,7 +100,7 @@ class Model {
      * Getter for a map of char labels and their indices in the model.
      * @return a map from each char label to its index in the confusion matrix
      */
-    std::map<char, size_t> GetLabelIndices() const;
+    const std::map<char, size_t>& GetLabelIndices() const;
     
     /**
      * Calculates the accuracy of the model by tallying the number of correct
@@ -134,7 +141,7 @@ class Model {
     
     // Determines how often to list the current index during a test
     static constexpr size_t kLinearTestingFeedbackRate = 100;
-    static constexpr size_t kThreadedTestingFeedbackRate = 20;
+    static constexpr size_t kThreadedTestingFeedbackRate = 25;
     
     // The spacing schema to use when generating the serialized model
     static constexpr size_t kJsonSchemaSpacing = 2;
@@ -189,12 +196,15 @@ class Model {
      * @param dataset - a Dataset object containing Images & their actual labels
      * @param label_indices - a map of char to size_t indicating the index of 
      *                        each class label in the confusion matrix generated
+     * @param is_printing_verbose - indicates whether to notify the index of the
+     *                              current test image every increment
      * @return a vector of thread and confusion matrix pairs
      */
     std::vector<std::pair<std::thread,
         std::future<std::vector<std::vector<size_t>>>>>
     CreateTestThreads(const Dataset& dataset,
-                      const std::map<char, size_t>& label_indices) const;
+                      const std::map<char, size_t>& label_indices,
+                      bool is_printing_verbose) const;
 
     /**
      * This function is run by a single thread to classify a group of Images
@@ -205,11 +215,14 @@ class Model {
      * @param label_indices - a map of char to size_t indicating the index of 
      *                        each class label in the confusion matrix generated
      * @param thread_index - a size_t index of the thread running this method
+     * @param is_printing_verbose - indicates whether to notify the index of the
+     *                              current test image every increment
      */
     void TestImageGroup(
         std::promise<std::vector<std::vector<size_t>>> thread_result,
         const std::vector<Image>& image_group,
-        const std::map<char, size_t>& label_indices, size_t thread_index) const;
+        const std::map<char, size_t>& label_indices, size_t thread_index, 
+        bool is_printing_verbose) const;
     
     /**
      * Collects the matrix result of each thread and creates a confusion matrix.
@@ -222,13 +235,6 @@ class Model {
         std::vector<std::pair<std::thread,
             std::future<std::vector<std::vector<size_t>>>>>& thread_group,
         const std::map<char, size_t>& label_indices) const;
-
-    /**
-     * Enumerates each char class label and maps each char to a size_t that 
-     * indicates the char's corresponding label in the confusion matrix.
-     * @return a map from each char label to its index in the confusion matrix
-     */
-    std::map<char, size_t> AssignLabelIndices() const;
 };
 
 } // namespace naivebayes

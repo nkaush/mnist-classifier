@@ -41,7 +41,8 @@ class ExecutableLogic {
      */
     int Execute(const std::string& train_flag, const std::string& load_flag,
                 const std::string& save_flag, const std::string& test_flag, 
-                const std::string& confusion_flag, bool is_test_multi_threaded);
+                const std::string& confusion_flag, bool is_test_multi_threaded,
+                bool is_printing_verbose);
   private:
     Model model_;
     
@@ -63,7 +64,6 @@ class ExecutableLogic {
     
     static const std::string kFinishedMessage;
     static const std::string kFailedMessage;
-
 
     /**
      * Save the model to the specified file path. Creates a file, if the
@@ -90,14 +90,17 @@ class ExecutableLogic {
      * path given, if the confusion matrix path is not empty.
      * @param dataset_path - a string indicating the file path of the dataset to
      *                       test the model on
+     * @param confusion_csv_path - a string indicating the file path to save the
+     *                             confusion matrix to     
      * @param is_test_multi_threaded - a bool indicating whether to use multiple 
      *                                 threads when testing the model
-     * @param confusion_csv_path - a string indicating the file path to save the
-     *                             confusion matrix to          
+     * @param is_printing_verbose - a bool indicating whether to print the index
+     *                              of the current image being tested
      */
-    void TestModel(const std::string& dataset_path, 
+    void TestModel(const std::string& dataset_path,
+                   const std::string& confusion_csv_path,
                    bool is_test_multi_threaded, 
-                   const std::string& confusion_csv_path) const;
+                   bool is_printing_verbose) const;
     
     /**
      * Writes the confusion matrix provided to a CSV file.

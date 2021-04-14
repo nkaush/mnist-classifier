@@ -37,7 +37,8 @@ ExecutableLogic::ExecutableLogic(size_t laplace_factor)
 int ExecutableLogic::Execute(const string& train_flag, const string& load_flag, 
                              const string& save_flag, const string& test_flag,
                              const string& confusion_flag, 
-                             bool is_test_multi_threaded) {
+                             bool is_test_multi_threaded, 
+                             bool is_printing_verbose) {
   // We can't allow the user to both train a model and load a model
   bool should_train = !train_flag.empty();
   bool should_load = !load_flag.empty();
@@ -59,7 +60,8 @@ int ExecutableLogic::Execute(const string& train_flag, const string& load_flag,
   
   // We can only test if we have a dataset and have a model loaded
   if (!test_flag.empty() && (should_train || should_load)) {
-    TestModel(test_flag, is_test_multi_threaded, confusion_flag);
+    TestModel(test_flag, confusion_flag, is_test_multi_threaded, 
+              is_printing_verbose);
   }
   
   return EXIT_SUCCESS;
@@ -104,9 +106,10 @@ void ExecutableLogic::TrainModel(const string& dataset_path) {
   }
 }
 
-void ExecutableLogic::TestModel(const string& dataset_path, 
+void ExecutableLogic::TestModel(const string& dataset_path,
+                                const string& confusion_csv_path,
                                 bool is_test_multi_threaded,
-                                const string& confusion_csv_path) const {
+                                bool is_printing_verbose) const {
   std::ifstream input_file(dataset_path);
 
   std::cout << kTestingModelMessage << std::endl;
@@ -117,9 +120,9 @@ void ExecutableLogic::TestModel(const string& dataset_path,
     // Test the model via the method defined with command line flags
     vector<vector<size_t>> confusion_matrix;
     if (is_test_multi_threaded) {
-      confusion_matrix = model_.MultiThreadedTest(dataset);
+      confusion_matrix = model_.MultiThreadedTest(dataset, is_printing_verbose);
     } else {
-      confusion_matrix = model_.Test(dataset);
+      confusion_matrix = model_.Test(dataset, is_printing_verbose);
     }
     
     // Save the confusion matrix, if specified
@@ -160,7 +163,7 @@ void ExecutableLogic::SaveConfusionMatrix(
     }
     output_file << std::endl;
     
-    // Write each row to the file
+    // Write each prediction count in each row to the file
     for (size_t row_idx = 0; row_idx < matrix.size(); row_idx++) {
       output_file << row_labels.at(row_idx);
       for (size_t count : matrix.at(row_idx)) {

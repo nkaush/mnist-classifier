@@ -27,11 +27,11 @@ const string Model::kJsonSchemaLabelKey = "label";
 const string Model::kJsonSchemaClassKey = "class_likelihood";
 const string Model::kJsonSchemaShadingKey = "shading_likelihoods";
 
-const string Model::kModelTestingIndexFeedback = "Thread: ";
-const string Model::kModelTestingThreadFeedback = "Index: ";
+const string Model::kModelTestingIndexFeedback = "Index: ";
+const string Model::kModelTestingThreadFeedback = "Thread: ";
 
 Model::Model(size_t laplace_smoothing) 
-    : laplace_smoothing_(laplace_smoothing) {}
+    : laplace_smoothing_(static_cast<float>(laplace_smoothing)) {}
 
 float Model::GetClassLikelihood(char class_label) const {
   return classifications_.at(class_label).class_likelihood_;
@@ -46,16 +46,18 @@ float Model::GetFeatureLikelihood(char class_label, Shading shading,
   return shading_likelihood.at(row).at(column);
 }
 
-map<char, size_t> Model::GetLabelIndices() const {
+const map<char, size_t>& Model::GetLabelIndices() const {
   return label_indices_;
 }
 
 void Model::Train(const Dataset& dataset) {
   vector<char> labels = dataset.GetDistinctLabels();
+  size_t label_index = 0;
 
   float laplace_smoothing = 
-      static_cast<float>(labels.size())* laplace_smoothing_;
-  float smoothed_dataset_size = laplace_smoothing + dataset.GetSize();
+      static_cast<float>(labels.size()) * laplace_smoothing_;
+  float smoothed_dataset_size = 
+      laplace_smoothing + static_cast<float>(dataset.GetSize());
 
   for (char label : labels) {
     const vector<Image>& group = dataset.GetImageGroup(label);
@@ -70,22 +72,11 @@ void Model::Train(const Dataset& dataset) {
 
     Classification classification = {class_likelihood, feature_likelihoods};
     classifications_[label] = classification;
-  }
-  
-  label_indices_ = AssignLabelIndices();
-}
 
-map<char, size_t> Model::AssignLabelIndices() const {
-  // Assign each char class label an index in our confusion matrix
-  map<char, size_t> label_indices;
-  size_t label_index = 0;
-
-  for (const auto& classification : classifications_) {
-    label_indices[classification.first] = label_index;
+    // Assign each char class label an index in our confusion matrix
+    label_indices_[label] = label_index;
     label_index++;
   }
-
-  return label_indices;
 }
 
 map<Shading, FloatMatrix> Model::CalculateFeatureLikelihoods(
@@ -228,15 +219,7 @@ char Model::Classify(const Image& image) const {
   // Go through each class label to check the likelihood of being that label
   for (const auto& class_group : classifications_) {
     char label = class_group.first;
-    float score = GetClassLikelihood(label);
-
-    // Go through each pixel to retrieve likelihoods of the shading of the pixel
-    for (size_t row = 0; row < image.GetHeight(); row++) {
-      for (size_t column = 0; column < image.GetWidth(); column++) {
-        Shading shading = image.GetPixel(row, column);
-        score += GetFeatureLikelihood(label, shading, row, column);
-      }
-    }
+    float score = CalculateLikelihoodScore(label, image);
     
     // Update the prediction if we hit the first class or have a higher score
     if (score > max_likelihood || most_likely_label == Image::kDefaultLabel) {
@@ -248,7 +231,21 @@ char Model::Classify(const Image& image) const {
   return most_likely_label;
 }
 
-LongMatrix Model::Test(const Dataset& dataset) const {
+float Model::CalculateLikelihoodScore(char label, const Image& image) const { 
+  float score = GetClassLikelihood(label); 
+
+  // Go through each pixel to retrieve likelihoods of the shading of the pixel
+  for (size_t row = 0; row < image.GetHeight(); row++) {
+    for (size_t column = 0; column < image.GetWidth(); column++) {
+      Shading shading = image.GetPixel(row, column);
+      score += GetFeatureLikelihood(label, shading, row, column);
+    }
+  }
+  
+  return score;
+}
+
+LongMatrix Model::Test(const Dataset& dataset, bool is_printing_verbose) const {
   map<char, size_t> label_indices = GetLabelIndices();
   
   vector<size_t> matrix_row(label_indices.size(), 0);
@@ -261,7 +258,7 @@ LongMatrix Model::Test(const Dataset& dataset) const {
 
     // Go through each image in the subset and try to predict its label
     for (const Image& image : images) {
-      if (index % kLinearTestingFeedbackRate == 0) {
+      if (is_printing_verbose && index % kLinearTestingFeedbackRate == 0) {
         std::cout << kModelTestingIndexFeedback << index << std::endl;
       }
       char predicted = Classify(image);
@@ -277,21 +274,24 @@ LongMatrix Model::Test(const Dataset& dataset) const {
   return confusion_matrix;
 }
 
-LongMatrix Model::MultiThreadedTest(const Dataset& dataset) const {
+LongMatrix Model::MultiThreadedTest(const Dataset& dataset, 
+                                    bool is_printing_verbose) const {
   map<char, size_t> label_indices = GetLabelIndices();
 
   // Create threads to classify groups of Images and then aggregate results
-  ThreadGroup threads = CreateTestThreads(dataset, label_indices);
+  ThreadGroup threads = CreateTestThreads(dataset, label_indices, 
+                                          is_printing_verbose);
   LongMatrix confusion_matrix = JoinTestThreads(threads, label_indices);
   
   return confusion_matrix;
 }
 
-ThreadGroup Model::CreateTestThreads(
-    const Dataset& dataset, const map<char, size_t>& label_indices) const {
+ThreadGroup Model::CreateTestThreads(const Dataset& dataset, 
+                                     const map<char, size_t>& label_indices, 
+                                     bool is_printing_verbose) const {
   ThreadGroup thread_group;
-  // Adapted from https://stackoverflow.com/a/57134334
   size_t thread_index = 0;
+  
   // Go through each classification group and create AT LEAST 1 thread for each
   for (char label : dataset.GetDistinctLabels()) {
     const vector<Image>& images = dataset.GetImageGroup(label);
@@ -305,18 +305,21 @@ ThreadGroup Model::CreateTestThreads(
       auto begin_iterator = images.begin() + current_group_index;
       current_group_index += batch_size;
       auto end_iterator = images.begin() + current_group_index;
+      
       if (end_iterator > images.end()) {
         end_iterator = images.end();
       }
-      // Create a thread for each group
+      
+      // Adapted from https://stackoverflow.com/a/57134334
       vector<Image> sub_group(begin_iterator, end_iterator);
       promise<LongMatrix> thread_result;
       future<LongMatrix> completable_future = thread_result.get_future();
-
+      
       // Adapted from https://www.reddit.com/r/cpp_questions/comments/8top49/call_to_deleted_function_when_using_threads/
       thread next_thread(&Model::TestImageGroup, std::ref(*this),
                          std::move(thread_result), sub_group, 
-                         label_indices, thread_index);
+                         label_indices, thread_index, is_printing_verbose);
+      // Create a thread for each group of images
       thread_group.emplace_back(move(next_thread), move(completable_future));
       thread_index++;
     }
@@ -327,7 +330,8 @@ ThreadGroup Model::CreateTestThreads(
 
 void Model::TestImageGroup(
     promise<LongMatrix> thread_result, const vector<Image>& image_group,
-    const map<char, size_t>& label_indices, size_t thread_index) const {
+    const map<char, size_t>& label_indices, size_t thread_index, 
+    bool is_printing_verbose) const {
   // Initialize an empty confusion matrix we fill with results of this thread
   vector<size_t> matrix_row(label_indices.size(), 0);
   LongMatrix confusion_matrix(label_indices.size(), matrix_row);
@@ -335,8 +339,8 @@ void Model::TestImageGroup(
   size_t index = 0;
   for (const Image& image : image_group) {
     // Only print label index every `kThreadedTestingFeedbackRate` predictions
-    if (index % kThreadedTestingFeedbackRate == 0) {
-      std::cout << kModelTestingThreadFeedback << thread_index << " ";
+    if (is_printing_verbose && index % kThreadedTestingFeedbackRate == 0) {
+      std::cout << kModelTestingThreadFeedback << thread_index << "\t";
       std::cout << kModelTestingIndexFeedback << index << std::endl;
     }
     
@@ -358,11 +362,10 @@ LongMatrix Model::JoinTestThreads(
   // Initialize out confusion matrix to be n-labels x n-labels of 0s
   vector<size_t> matrix_row(label_indices.size(), 0);
   LongMatrix confusion_matrix(label_indices.size(), matrix_row);
-
-  // Adapted from https://stackoverflow.com/a/57134334
+  
   // Go through each thread, get the resulting confusion matrix, and aggregate
   for (pair<thread, future<LongMatrix>>& thread_pair : threads) {
-    // Get the thread and the promised result wrapper
+    // Adapted from https://stackoverflow.com/a/57134334
     thread image_group_thread = std::move(thread_pair.first);
     future<LongMatrix> result = std::move(thread_pair.second);
 
