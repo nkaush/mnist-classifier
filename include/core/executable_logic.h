@@ -41,8 +41,7 @@ class ExecutableLogic {
      */
     int Execute(const std::string& train_flag, const std::string& load_flag,
                 const std::string& save_flag, const std::string& test_flag, 
-                const std::string& confusion_flag, bool is_test_multi_threaded,
-                bool is_printing_verbose);
+                const std::string& confusion_flag, bool is_printing_verbose);
   private:
     Model model_;
     
@@ -101,7 +100,6 @@ class ExecutableLogic {
      */
     void TestModel(const std::string& dataset_path,
                    const std::string& confusion_csv_path,
-                   bool is_test_multi_threaded, 
                    bool is_printing_verbose) const;
     
     /**

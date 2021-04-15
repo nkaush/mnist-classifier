@@ -177,60 +177,24 @@ TEST_CASE("Test Likelihood Score Calculation and Image Classification on 5x5") {
   }
 }
 
-TEST_CASE("Test Model Testing on 4x4 Images") {
-  Model model = Model();
-  Dataset train_dataset = Dataset();
+TEST_CASE("Test Model Testing") {
+  SECTION("Test model test returns correct confusion matrix on 5x5 Images") {
+    Model model = Model();
+    Dataset train_dataset = Dataset();
 
-  // Need long verbose filepath since Cmake/Cinder can't locate local file path
-  std::string file_path = "/Users/neilkaushikkar/Cinder/my-projects/"
-                          "naive-bayes-nkaush/data/testing_train_dataset_4x4.txt";
-  ifstream train_input(file_path);
-  train_input >> train_dataset;
-  model.Train(train_dataset);
+    // Need long verbose filepath since Cmake/Cinder can't locate local file path
+    std::string file_path = "/Users/neilkaushikkar/Cinder/my-projects/"
+                            "naive-bayes-nkaush/data/testing_train_dataset_5x5.txt";
+    ifstream train_input(file_path);
+    train_input >> train_dataset;
+    model.Train(train_dataset);
 
-  Dataset testing_dataset;
-  std::string test_path = "/Users/neilkaushikkar/Cinder/my-projects/"
-                          "naive-bayes-nkaush/data/testing_test_dataset_4x4.txt";
-  ifstream test_input(test_path);
-  test_input >> testing_dataset;
-  
-  SECTION("Test linear test returns correct confusion matrix") {
-    LongMatrix expected {{2, 0},
-                         {0, 2}};
-    LongMatrix actual = model.Test(testing_dataset, false);
-
-    REQUIRE(actual == expected);
-    REQUIRE(Model::CalculateAccuracy(actual) == Approx(1));
-  }
-
-  SECTION("Test multi-threaded test returns correct confusion matrix") {
-    LongMatrix expected {{2, 0},
-                         {0, 2}};
-    LongMatrix actual = model.Test(testing_dataset, false);
-
-    REQUIRE(actual == expected);
-    REQUIRE(Model::CalculateAccuracy(actual) == Approx(1));
-  }
-}
-
-TEST_CASE("Test Model Testing on 5x5 Images") {
-  Model model = Model();
-  Dataset train_dataset = Dataset();
-
-  // Need long verbose filepath since Cmake/Cinder can't locate local file path
-  std::string file_path = "/Users/neilkaushikkar/Cinder/my-projects/"
-                          "naive-bayes-nkaush/data/testing_train_dataset_5x5.txt";
-  ifstream train_input(file_path);
-  train_input >> train_dataset;
-  model.Train(train_dataset);
-
-  Dataset testing_dataset;
-  std::string test_path = "/Users/neilkaushikkar/Cinder/my-projects/"
-                          "naive-bayes-nkaush/data/testing_test_dataset_5x5.txt";
-  ifstream test_input(test_path);
-  test_input >> testing_dataset;
-  
-  SECTION("Test linear test returns correct confusion matrix") {
+    Dataset testing_dataset;
+    std::string test_path = "/Users/neilkaushikkar/Cinder/my-projects/"
+                            "naive-bayes-nkaush/data/testing_test_dataset_5x5.txt";
+    ifstream test_input(test_path);
+    test_input >> testing_dataset;
+    
     LongMatrix expected {{2, 1},
                          {1, 2}};
     LongMatrix actual = model.Test(testing_dataset, false);
@@ -239,12 +203,28 @@ TEST_CASE("Test Model Testing on 5x5 Images") {
     REQUIRE(Model::CalculateAccuracy(actual) == Approx(0.66667));
   }
 
-  SECTION("Test multi-threaded test returns correct confusion matrix") {
-    LongMatrix expected {{2, 1},
-                         {1, 2}};
+  SECTION("Test linear test returns correct confusion matrix on 4x4 images") {
+    Model model = Model();
+    Dataset train_dataset = Dataset();
+
+    // Need long verbose filepath since Cmake/Cinder can't locate local file path
+    std::string file_path = "/Users/neilkaushikkar/Cinder/my-projects/"
+                            "naive-bayes-nkaush/data/testing_train_dataset_4x4.txt";
+    ifstream train_input(file_path);
+    train_input >> train_dataset;
+    model.Train(train_dataset);
+
+    Dataset testing_dataset;
+    std::string test_path = "/Users/neilkaushikkar/Cinder/my-projects/"
+                            "naive-bayes-nkaush/data/testing_test_dataset_4x4.txt";
+    ifstream test_input(test_path);
+    test_input >> testing_dataset;
+    
+    LongMatrix expected {{2, 0},
+                         {0, 2}};
     LongMatrix actual = model.Test(testing_dataset, false);
 
     REQUIRE(actual == expected);
-    REQUIRE(Model::CalculateAccuracy(actual) == Approx(0.66667));
+    REQUIRE(Model::CalculateAccuracy(actual) == Approx(1));
   }
 }

@@ -77,6 +77,9 @@ void Model::Train(const Dataset& dataset) {
     label_indices_[label] = label_index;
     label_index++;
   }
+  
+  SetClassLikelihoods();
+  SetVectorFeatureLikelihoods();
 }
 
 map<Shading, FloatMatrix> Model::CalculateFeatureLikelihoods(
@@ -185,11 +188,16 @@ std::istream& operator>>(std::istream& input, Model& model) {
   json serialized_model;
   input >> serialized_model;
   
+  size_t label_index = 0;
+  
   // Go through each classification json object to deserialize them
   for (const json& classification : serialized_model) {
     // Find the serialized class label and class likelihood
     string class_string = classification[Model::kJsonSchemaLabelKey];
     char class_label = class_string.at(0);
+    model.label_indices_[class_label] = label_index;
+    label_index++;
+    
     float class_likelihood = classification[Model::kJsonSchemaClassKey];
 
     map<string, FloatMatrix> parsed_json_object = 
@@ -207,6 +215,9 @@ std::istream& operator>>(std::istream& input, Model& model) {
     Classification class_struct = {class_likelihood, shading_likelihood};
     model.classifications_[class_label] = class_struct;
   }
+  
+  model.SetClassLikelihoods();
+  model.SetVectorFeatureLikelihoods();
   
   return input;
 }
@@ -231,18 +242,54 @@ char Model::Classify(const Image& image) const {
   return most_likely_label;
 }
 
-float Model::CalculateLikelihoodScore(char label, const Image& image) const { 
-  float score = GetClassLikelihood(label); 
+float Model::CalculateLikelihoodScore(char label, const Image& image) const {
+  size_t label_idx = label_indices_.at(label);
+
+  float score = class_likelihoods_.at(label_idx);
 
   // Go through each pixel to retrieve likelihoods of the shading of the pixel
   for (size_t row = 0; row < image.GetHeight(); row++) {
     for (size_t column = 0; column < image.GetWidth(); column++) {
-      Shading shading = image.GetPixel(row, column);
-      score += GetFeatureLikelihood(label, shading, row, column);
+      auto shading_encoding = static_cast<size_t>(image.GetPixel(row, column));
+
+      score += feature_likelihoods_.at(label_idx)
+          .at(shading_encoding)
+          .at(row)
+          .at(column);
     }
   }
-  
+
   return score;
+}
+
+void Model::SetVectorFeatureLikelihoods() {
+  feature_likelihoods_ = vector<vector<FloatMatrix>>(label_indices_.size());
+  
+  for (const auto& model_class : classifications_) {
+    char label = model_class.first;
+    const map<Shading, FloatMatrix>& shading_likelihoods = 
+        model_class.second.shading_likelihoods_;
+
+    size_t class_label_idx = label_indices_.at(label);
+    feature_likelihoods_.at(class_label_idx) = 
+        vector<FloatMatrix>(shading_likelihoods.size());
+
+    for (const auto& shading_likelihood : shading_likelihoods) {
+      auto shading_encoding = static_cast<size_t>(shading_likelihood.first);
+      
+      feature_likelihoods_.at(class_label_idx).at(shading_encoding) = 
+          shading_likelihood.second;
+    }
+  }
+}
+
+void Model::SetClassLikelihoods() {
+  class_likelihoods_ = vector<float>(classifications_.size());
+  
+  for (const auto& label_index_pair : label_indices_) {
+    class_likelihoods_.at(label_index_pair.second) = 
+        classifications_.at(label_index_pair.first).class_likelihood_;
+  }
 }
 
 LongMatrix Model::Test(const Dataset& dataset, bool is_printing_verbose) const {
@@ -271,116 +318,6 @@ LongMatrix Model::Test(const Dataset& dataset, bool is_printing_verbose) const {
     }
   }
 
-  return confusion_matrix;
-}
-
-LongMatrix Model::MultiThreadedTest(const Dataset& dataset, 
-                                    bool is_printing_verbose) const {
-  map<char, size_t> label_indices = GetLabelIndices();
-
-  // Create threads to classify groups of Images and then aggregate results
-  ThreadGroup threads = CreateTestThreads(dataset, label_indices, 
-                                          is_printing_verbose);
-  LongMatrix confusion_matrix = JoinTestThreads(threads, label_indices);
-  
-  return confusion_matrix;
-}
-
-ThreadGroup Model::CreateTestThreads(const Dataset& dataset, 
-                                     const map<char, size_t>& label_indices, 
-                                     bool is_printing_verbose) const {
-  ThreadGroup thread_group;
-  size_t thread_index = 0;
-  
-  // Go through each classification group and create AT LEAST 1 thread for each
-  for (char label : dataset.GetDistinctLabels()) {
-    const vector<Image>& images = dataset.GetImageGroup(label);
-    // Account for truncating by adding 1 to ensure extra groups are not created
-    size_t batch_size = (images.size() / kThreadsPerGroup) + 1; 
-
-    size_t current_group_index = 0;
-    // Split vector of images into groups of size batch_size
-    while (current_group_index < images.size()) {
-      // Get a sub-vector of the group of images with `batch_size` total images
-      auto begin_iterator = images.begin() + current_group_index;
-      current_group_index += batch_size;
-      auto end_iterator = images.begin() + current_group_index;
-      
-      if (end_iterator > images.end()) {
-        end_iterator = images.end();
-      }
-      
-      // Adapted from https://stackoverflow.com/a/57134334
-      vector<Image> sub_group(begin_iterator, end_iterator);
-      promise<LongMatrix> thread_result;
-      future<LongMatrix> completable_future = thread_result.get_future();
-      
-      // Adapted from https://www.reddit.com/r/cpp_questions/comments/8top49/call_to_deleted_function_when_using_threads/
-      thread next_thread(&Model::TestImageGroup, std::ref(*this),
-                         std::move(thread_result), sub_group, 
-                         label_indices, thread_index, is_printing_verbose);
-      // Create a thread for each group of images
-      thread_group.emplace_back(move(next_thread), move(completable_future));
-      thread_index++;
-    }
-  }
-
-  return thread_group;
-}
-
-void Model::TestImageGroup(
-    promise<LongMatrix> thread_result, const vector<Image>& image_group,
-    const map<char, size_t>& label_indices, size_t thread_index, 
-    bool is_printing_verbose) const {
-  // Initialize an empty confusion matrix we fill with results of this thread
-  vector<size_t> matrix_row(label_indices.size(), 0);
-  LongMatrix confusion_matrix(label_indices.size(), matrix_row);
-
-  size_t index = 0;
-  for (const Image& image : image_group) {
-    // Only print label index every `kThreadedTestingFeedbackRate` predictions
-    if (is_printing_verbose && index % kThreadedTestingFeedbackRate == 0) {
-      std::cout << kModelTestingThreadFeedback << thread_index << "\t";
-      std::cout << kModelTestingIndexFeedback << index << std::endl;
-    }
-    
-    char predicted_label = Classify(image);
-
-    // Find the indices assigned to both the predicted and actual labels
-    size_t row = label_indices.at(image.GetLabel());
-    size_t column = label_indices.at(predicted_label);
-
-    confusion_matrix.at(row).at(column)++;
-    index++;
-  }
-
-  thread_result.set_value(confusion_matrix);
-}
-
-LongMatrix Model::JoinTestThreads(
-    ThreadGroup& threads, const map<char, size_t>& label_indices) const {
-  // Initialize out confusion matrix to be n-labels x n-labels of 0s
-  vector<size_t> matrix_row(label_indices.size(), 0);
-  LongMatrix confusion_matrix(label_indices.size(), matrix_row);
-  
-  // Go through each thread, get the resulting confusion matrix, and aggregate
-  for (pair<thread, future<LongMatrix>>& thread_pair : threads) {
-    // Adapted from https://stackoverflow.com/a/57134334
-    thread image_group_thread = std::move(thread_pair.first);
-    future<LongMatrix> result = std::move(thread_pair.second);
-
-    LongMatrix thread_matrix = result.get(); // retrieve result from promise
-
-    // Aggregate the results
-    for (size_t row = 0; row < confusion_matrix.size(); row++) {
-      for (size_t col = 0; col < confusion_matrix.at(0).size(); col++) {
-        confusion_matrix.at(row).at(col) += thread_matrix.at(row).at(col);
-      }
-    }
-
-    image_group_thread.join(); // Close the thread
-  }
-  
   return confusion_matrix;
 }
 
