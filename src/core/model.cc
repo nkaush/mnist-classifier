@@ -251,6 +251,7 @@ float Model::CalculateLikelihoodScore(char label, const Image& image) const {
     for (size_t column = 0; column < image.GetWidth(); column++) {
       auto shading_encoding = static_cast<size_t>(image.GetPixel(row, column));
 
+      // Access the specified element from the 4D vector
       score += feature_likelihoods_.at(label_idx)
           .at(shading_encoding)
           .at(row)
@@ -264,15 +265,18 @@ float Model::CalculateLikelihoodScore(char label, const Image& image) const {
 void Model::SetVectorFeatureLikelihoods() {
   feature_likelihoods_ = vector<vector<FloatMatrix>>(label_indices_.size());
   
+  // Go through each class label and add each Classification to the vector
   for (const auto& model_class : classifications_) {
     char label = model_class.first;
     const map<Shading, FloatMatrix>& shading_likelihoods = 
         model_class.second.shading_likelihoods_;
 
+    // Initialize an empty sub-vector we can fill
     size_t class_label_idx = label_indices_.at(label);
     feature_likelihoods_.at(class_label_idx) = 
         vector<FloatMatrix>(shading_likelihoods.size());
 
+    // Go through each type of Shading and add to the vector
     for (const auto& shading_likelihood : shading_likelihoods) {
       auto shading_encoding = static_cast<size_t>(shading_likelihood.first);
       
@@ -285,6 +289,7 @@ void Model::SetVectorFeatureLikelihoods() {
 void Model::SetClassLikelihoods() {
   class_likelihoods_ = vector<float>(classifications_.size());
   
+  // Go through each class likelihood and add to the vector
   for (const auto& label_index_pair : label_indices_) {
     class_likelihoods_.at(label_index_pair.second) = 
         classifications_.at(label_index_pair.first).class_likelihood_;
