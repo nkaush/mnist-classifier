@@ -28,7 +28,6 @@ const string Model::kJsonSchemaClassKey = "class_likelihood";
 const string Model::kJsonSchemaShadingKey = "shading_likelihoods";
 
 const string Model::kModelTestingIndexFeedback = "Index: ";
-const string Model::kModelTestingThreadFeedback = "Thread: ";
 
 Model::Model(size_t laplace_smoothing) 
     : laplace_smoothing_(static_cast<float>(laplace_smoothing)) {}

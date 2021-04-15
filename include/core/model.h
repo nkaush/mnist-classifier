@@ -137,13 +137,9 @@ class Model {
     std::map<char, size_t> label_indices_;
     
     float laplace_smoothing_;
-    
-    // Determines the max number of images to analyze in each thread
-    static constexpr size_t kThreadsPerGroup = 2;
-    
+
     // Determines how often to list the current index during a test
     static constexpr size_t kLinearTestingFeedbackRate = 100;
-    static constexpr size_t kThreadedTestingFeedbackRate = 25;
     
     // The spacing schema to use when generating the serialized model
     static constexpr size_t kJsonSchemaSpacing = 2;
@@ -154,10 +150,17 @@ class Model {
     static const std::string kJsonSchemaShadingKey; 
     
     static const std::string kModelTestingIndexFeedback;
-    static const std::string kModelTestingThreadFeedback;
 
+    /**
+     * Converts the classification map into a 4D-vector of feature probabilities
+     * used in classification. Sets the feature_likelihoods_ vector.
+     */
     void SetVectorFeatureLikelihoods();
     
+    /**
+     * Converts the classification map into a vector of class likelihoods used 
+     * in classification. Sets the class_likelihoods_ vector.
+     */
     void SetClassLikelihoods();
     
     /**
