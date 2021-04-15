@@ -6,8 +6,6 @@
 #define NAIVE_BAYES_MODEL_H
 
 #include <nlohmann/json.hpp>
-#include <thread>
-#include <future>
 
 #include "core/dataset.h"
 

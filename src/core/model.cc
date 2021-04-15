@@ -10,18 +10,13 @@
 namespace naivebayes {
 
 using nlohmann::json;
-using std::promise;
-using std::future;
-using std::thread;
 using std::vector;
 using std::string;
 using std::pair;
-using std::move;
 using std::map;
 
 using LongMatrix = vector<vector<size_t>>;
 using FloatMatrix = vector<vector<float>>;
-using ThreadGroup = vector<pair<thread, future<LongMatrix>>>;
 
 const string Model::kJsonSchemaLabelKey = "label";
 const string Model::kJsonSchemaClassKey = "class_likelihood";
