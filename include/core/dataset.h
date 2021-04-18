@@ -50,7 +50,7 @@ class Dataset {
      * @throws std::invalid_argument if any image is missing a label or if any
      * image is not the same uniform size as all other images
      */
-    friend std::istream &operator>>(std::istream &input, Dataset& dataset);
+    friend std::istream &operator>>(std::istream& input, Dataset& dataset);
   
   private:
     // Stores size of dataset so we don't have to compute size from a map
@@ -59,13 +59,8 @@ class Dataset {
     // Groups Images by common labels
     std::map<char, std::vector<Image>> class_groups_;
     
-    /**
-     * Adds an Image to the dataset by encoding strings to Shading enum lines.
-     * @param label - a char indicating the label of the Image to add
-     * @param image_lines - a vector of strings, representing rows of pixels
-     */
-    void AddImage(char label, const std::vector<std::string>& image_lines);
-
+    static constexpr char kFileLineDelimiter = '\n';
+    
     /**
      * Parses the first image in an input stream to infer the dimension of all 
      * following images in the stream, as assumed in the project description
@@ -75,15 +70,6 @@ class Dataset {
      * @throws std::invalid_argument if the first image is missing a label
      */
     Image ParseFirstImage(std::istream& input) const;
-
-    /**
-     * Encodes a vector of strings representing rows of pixels in an image by 
-     * mapping each character to a Shading enum encoding.
-     * @param shading_strings - a vector of strings to encode into Shadings
-     * @return a 2D-vector of Shading enum encodings representing the image
-     */
-    std::vector<std::vector<Shading>> EncodeShadingStrings(
-        const std::vector<std::string>& shading_strings) const;
 };
 
 } // namespace naivebayes

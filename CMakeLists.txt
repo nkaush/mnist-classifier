@@ -62,7 +62,6 @@ if(NOT catch2_POPULATED)
 endif()
 
 # Load the gflags library from a homebrew local installation 
-set(gflags_DIR /usr/local/Cellar/gflags/2.2.2)
 find_package(gflags REQUIRED)
 FetchContent_GetProperties(gflags)
 include_directories(${gflags_INCLUDE_DIR})
@@ -77,7 +76,7 @@ list(APPEND CORE_SOURCE_FILES src/core/dataset.cc
                               src/core/model.cc
                               src/core/image.cc
                               src/core/executable_logic.cc
-        data/testing_dataset.txt
+        data/testing_train_dataset_4x4.txt
                               data/trainingimagesandlabels.txt)
 
 list(APPEND SOURCE_FILES    ${CORE_SOURCE_FILES}
@@ -86,7 +85,8 @@ list(APPEND SOURCE_FILES    ${CORE_SOURCE_FILES}
 
 list(APPEND TEST_FILES tests/test_dataset.cc
                        tests/test_model.cc
-                       tests/test_image.cc)
+                       tests/test_image.cc
+                       tests/test_model_classification.cc)
 
 add_executable(train-model apps/train_model_main.cc ${CORE_SOURCE_FILES})
 target_link_libraries(train-model json_lib gflags)
@@ -97,6 +97,7 @@ ci_make_app(
         CINDER_PATH     ${CINDER_PATH}
         SOURCES         apps/cinder_app_main.cc ${SOURCE_FILES}
         INCLUDES        include
+        LIBRARIES       json_lib
 )
 
 ci_make_app(

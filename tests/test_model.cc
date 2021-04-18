@@ -12,10 +12,12 @@
 using naivebayes::Dataset;
 using naivebayes::Shading;
 using naivebayes::Model;
+using naivebayes::Image;
 using std::stringstream;
 using nlohmann::json;
 using std::ifstream;
 using std::vector;
+using std::string;
 
 TEST_CASE("Test Class Occurrence Likelihoods") {
   Model model = Model();
@@ -23,18 +25,18 @@ TEST_CASE("Test Class Occurrence Likelihoods") {
 
   // Need long verbose filepath since Cmake/Cinder can't locate local file path
   std::string file_path = "/Users/neilkaushikkar/Cinder/my-projects/"
-      "naive-bayes-nkaush/data/testing_dataset.txt";
+      "naive-bayes-nkaush/data/testing_train_dataset_4x4.txt";
   ifstream input(file_path);
 
   input >> dataset;
   model.Train(dataset);
   
   SECTION("Test likelihood of class label being 0") {
-    REQUIRE(model.GetClassLikelihood('0') == Approx(6. / 11.));
+    REQUIRE(model.GetClassLikelihood('0') == Approx(log10(6. / 11.)));
   }
   
   SECTION("Test likelihood of class label being 1") {
-    REQUIRE(model.GetClassLikelihood('1') == Approx(5. / 11.));
+    REQUIRE(model.GetClassLikelihood('1') == Approx(log10(5. / 11.)));
   }
 }
 
@@ -44,7 +46,7 @@ TEST_CASE("Test Conditional Likelihoods") {
 
   // Need long verbose filepath since Cmake/Cinder can't locate local file path
   std::string file_path = "/Users/neilkaushikkar/Cinder/my-projects/"
-      "naive-bayes-nkaush/data/testing_dataset.txt";
+      "naive-bayes-nkaush/data/testing_train_dataset_4x4.txt";
   ifstream input(file_path);
   
   input >> dataset;
@@ -65,7 +67,8 @@ TEST_CASE("Test Conditional Likelihoods") {
     
     for (size_t row = 0; row < 4; row++) {
       for (size_t column = 0; column < 4; column++) {
-        REQUIRE(Approx(correct_likelihoods.at(row).at(column)).epsilon(0.01) == 
+        float correct = log10(correct_likelihoods.at(row).at(column));
+        REQUIRE(Approx(correct).epsilon(0.01) == 
                 model.GetFeatureLikelihood('0', Shading::kWhite, row, column));
       }
     }
@@ -86,8 +89,9 @@ TEST_CASE("Test Conditional Likelihoods") {
     
     for (size_t row = 0; row < 4; row++) {
       for (size_t column = 0; column < 4; column++) {
-        REQUIRE(Approx(correct_likelihoods.at(row).at(column)).epsilon(0.01) == 
-                model.GetFeatureLikelihood('0', Shading::kBlack, row, column));
+        float correct = log10(correct_likelihoods.at(row).at(column));
+        REQUIRE(Approx(correct).epsilon(0.01) ==
+                    model.GetFeatureLikelihood('0', Shading::kBlack, row, column));
       }
     }
   }
@@ -107,8 +111,9 @@ TEST_CASE("Test Conditional Likelihoods") {
 
     for (size_t row = 0; row < 4; row++) {
       for (size_t column = 0; column < 4; column++) {
-        REQUIRE(Approx(correct_likelihoods.at(row).at(column)).epsilon(0.01) ==
-                model.GetFeatureLikelihood('1', Shading::kWhite, row, column));
+        float correct = log10(correct_likelihoods.at(row).at(column));
+        REQUIRE(Approx(correct).epsilon(0.01) ==
+                    model.GetFeatureLikelihood('1', Shading::kWhite, row, column));
       }
     }
   }
@@ -128,8 +133,9 @@ TEST_CASE("Test Conditional Likelihoods") {
 
     for (size_t row = 0; row < 4; row++) {
       for (size_t column = 0; column < 4; column++) {
-        REQUIRE(Approx(correct_likelihoods.at(row).at(column)).epsilon(0.01) ==
-                model.GetFeatureLikelihood('1', Shading::kBlack, row, column));
+        float correct = log10(correct_likelihoods.at(row).at(column));
+        REQUIRE(Approx(correct).epsilon(0.01) ==
+                    model.GetFeatureLikelihood('1', Shading::kBlack, row, column));
       }
     }
   }
@@ -151,7 +157,7 @@ TEST_CASE("Test Model Serialization") {
     
     // Create the actual serialized model
     std::string dataset_path = "/Users/neilkaushikkar/Cinder/my-projects/"
-        "naive-bayes-nkaush/data/testing_dataset.txt";
+        "naive-bayes-nkaush/data/testing_train_dataset_4x4.txt";
     ifstream dataset_input(dataset_path);
 
     dataset_input >> dataset;

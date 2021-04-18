@@ -2,6 +2,10 @@
 
 #include "cinder/gl/gl.h"
 
+#include <core/image.h>
+
+#include <vector>
+
 namespace naivebayes {
 
 namespace visualizer {
@@ -27,7 +31,11 @@ class Sketchpad {
    *                            pixels) from the brush that will be shaded
    */
   Sketchpad(const glm::vec2& top_left_corner, size_t num_pixels_per_side,
-            double sketchpad_size, double brush_radius = 1.15);
+            double sketchpad_size, double brush_radius = 0.8);
+  
+  const std::vector<std::vector<Shading>>& GetPixels() const {
+    return pixels_;
+  }
 
   /**
    * Displays the current state of the sketchpad in the Cinder application.
@@ -58,6 +66,9 @@ class Sketchpad {
   double pixel_side_length_;
 
   double brush_radius_;
+  
+  std::vector<std::vector<Shading>> pixels_;
+  
 };
 
 }  // namespace visualizer

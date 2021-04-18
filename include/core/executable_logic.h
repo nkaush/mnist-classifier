@@ -15,11 +15,10 @@ namespace naivebayes {
 class ExecutableLogic {
   public: 
     /**
-     * Default constructor that initializes and empty model that will be filled 
-     * by files passed in from the command line or trained with files passed
-     * in via the command line.
+     * Initialized the logic object and the Model object it operates on.
+     * @param laplace_factor - the smoothing to use when training the model
      */
-    ExecutableLogic();
+    ExecutableLogic(size_t laplace_factor);
     
     /**
      * Executes the logic and returns the exit status code depending on whether 
@@ -32,15 +31,41 @@ class ExecutableLogic {
      * @param load_flag - a string indicating the file path of the model file
      *                    to load into the model in memory
      * @param save_flag - a string indicating the file to save this model to
-     * @return a 0 or 1, depending on the result of executing the CLI logic.
+     * @param test_flag - a string indicating the file path of the dataset 
+     *                     to test the model on
+     * @param confusion_flag - a string indicating the file path to save the 
+     *                         confusion matrix generated from testing to
+     * @param is_test_multi_threaded - bool indicating whether to multi thread 
+     *                                 the testing, if we are to test the model
+     * @return a 0 or 1, depending on the result of executing the CLI logic
      */
     int Execute(const std::string& train_flag, const std::string& load_flag,
-                const std::string& save_flag);
+                const std::string& save_flag, const std::string& test_flag, 
+                const std::string& confusion_flag, bool is_printing_verbose);
   private:
     Model model_;
-
-    static void ValidateFilePath(const std::string& file_path) ;
     
+    // The delimiter to use when generating the csv file
+    static constexpr char kCsvElementDelimiter = ',';
+    
+    // Messages to print throughout executing the user's request
+    static const std::string kModelAccuracyMessage;
+    static const std::string kTestingModelMessage;
+
+    static const std::string kTrainingModelMessage;
+    
+    static const std::string kLoadingModelMessage;
+    static const std::string kLoadingConflictMessage;
+    
+    static const std::string kSavingModelMessage;
+    static const std::string kSavingConfusionMatrixMessage;
+    static const std::string kConfusionMatrixColumnLabel;
+    static const std::string kConfusionMatrixRowLabel;
+    static const std::string kConfusionMatrixLabelIndicator;
+    
+    static const std::string kFinishedMessage;
+    static const std::string kFailedMessage;
+
     /**
      * Save the model to the specified file path. Creates a file, if the
      * file does not exist, otherwise, overwrites the file.
@@ -59,6 +84,43 @@ class ExecutableLogic {
      * @param dataset_path - a string indicating the path of the dataset to load
      */
     void TrainModel(const std::string& dataset_path);
+    
+    /**
+     * Tests the model linearly or concurrently, depending on the request to 
+     * multi-thread with the dataset provided. Saves the confusion matrix to the
+     * path given, if the confusion matrix path is not empty.
+     * @param dataset_path - a string indicating the file path of the dataset to
+     *                       test the model on
+     * @param confusion_csv_path - a string indicating the file path to save the
+     *                             confusion matrix to     
+     * @param is_test_multi_threaded - a bool indicating whether to use multiple 
+     *                                 threads when testing the model
+     * @param is_printing_verbose - a bool indicating whether to print the index
+     *                              of the current image being tested
+     */
+    void TestModel(const std::string& dataset_path,
+                   const std::string& confusion_csv_path,
+                   bool is_printing_verbose) const;
+    
+    /**
+     * Writes the confusion matrix provided to a CSV file.
+     * @param save_path - a string indicating the file path to save to
+     * @param matrix - a 2D-vector representing the confusion matrix
+     */
+    void SaveConfusionMatrix(
+        const std::string& save_path, 
+        const std::vector<std::vector<size_t>>& matrix) const;
+    
+    /**
+     * Helper method to write the counts in the matrix to the given stream.
+     * @param output_file - the stream to write to
+     * @param matrix - the confusion matrix to write
+     * @param middle_index - the index of the row to write indicator labels to
+     */
+    void WriteConfusionMatrixCounts(
+        std::ofstream& output_file, 
+        const std::vector<std::vector<size_t>>& matrix,
+        size_t middle_index) const;
 };
 
 }
